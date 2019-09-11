@@ -80,10 +80,13 @@ class MyBot(Bot):
 
     def choose_action(self, state):
         indexs, all_states = self.get_all_available_actions(state)
-        action = self.sess.run(self.action, feed_dict={
-            self.pl_s: all_states
-        })
-        x, y = indexs[action[0]] % self.dim, indexs[action[0]] // self.dim
+        if np.random.rand() > 0.2:
+            action = self.sess.run(self.action, feed_dict={
+                self.pl_s: all_states
+            })[0]
+        else:
+            action = np.random.randint(len(indexs))
+        x, y = indexs[action] % self.dim, indexs[action] // self.dim
         return x, y
 
     def learn(self):

@@ -18,13 +18,8 @@ def reverse_of(dir_func):
 
 class Connect6(object):
 
-    def __init__(self, dim, player_name1='Player1', player_name2='Player2'):
-        """
-        player_name1: 黑子， player_name2: 白子
-        """
-        assert player_name1 != player_name2, "不能给两位选手取相同的名字"
+    def __init__(self, dim):
         self.dim = dim  # 棋盘格维度
-        self.players_name = [player_name1, player_name2]
         self.players_char = ['●', '○']  # 用于显示黑棋、白棋的样式
         self.last_char = ['■', '□']     # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
         self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])   # 界面的最上部序号
@@ -38,6 +33,14 @@ class Connect6(object):
             'left down': lambda x, y: (x - 1, y - 1),
             'down': lambda x, y: (x, y - 1),
         }
+
+    def register(self, player_name1='Player1', player_name2='Player2'):
+        """
+        player_name1: 黑子， player_name2: 白子
+        """
+        assert player_name1 != player_name2, "不能给两位选手取相同的名字"
+        self.players_name = [player_name1, player_name2]
+
 
     def render(self):
         """Render交互界面"""
@@ -159,6 +162,8 @@ class Connect6(object):
                 if is_end:
                     # returns player who won.
                     return board[ny][nx]
+        if 2 not in self.board:
+            return -1
 
     def _track(self, start_x, start_y, dir_func):
         x, y = start_x, start_y
