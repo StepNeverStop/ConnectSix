@@ -1,7 +1,9 @@
 from bot import Bot
 
 class MyBot(Bot):
-
+    """
+    实现自己的智能体策略
+    """
     def __init__(self, dim):
         super().__init__(dim)
         pass
