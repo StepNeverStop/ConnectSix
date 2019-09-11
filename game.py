@@ -15,10 +15,18 @@ def reverse_of(dir_func):
 
 class Connect6(object):
 
-    def __init__(self, dim):
-        self.dim = dim
-        self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])
+    def __init__(self, dim, player_name1='Player1', player_name2='Player2'):
+        """
+        player_name1: 黑子， player_name2: 白子
+        """
+        assert player_name1 != player_name2, "不能给两位选手取相同的名字"
+        self.dim = dim  # 棋盘格维度
+        self.players_name = [player_name1, player_name2]
+        self.players_char = ['●', '○']  # 用于显示黑棋、白棋的样式
+        self.last_char = ['■', '□']     # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
+        self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])   # 界面的最上部序号
         self.directions = {
+            'up':           lambda x, y: (x, y+1),
             'right':        lambda x, y: (x+1, y),
             'right up':     lambda x, y: (x+1, y+1),
             'right down':   lambda x, y: (x+1, y-1),
@@ -26,17 +34,7 @@ class Connect6(object):
             'left up':      lambda x, y: (x-1, y+1),
             'left down':    lambda x, y: (x-1, y-1),
             'down':         lambda x, y: (x, y-1),
-            'up':           lambda x, y: (x, y+1),
         }
-    
-    def register_players(self, name1, name2):
-        """
-        name1: 黑子， name2：白子
-        """
-        assert name1 != name2, "不能给两位选手取相同的名字"
-        self.players_name = [name1, name2]
-        self.players_char = ['●', '○']
-        self.last_char = ['■', '□']
 
     def render(self):
         """Render交互界面"""
@@ -49,7 +47,7 @@ class Connect6(object):
         
         for y in range(self.dim):
             print('     ' + '-' * 4 * self.dim)
-            print('  {:>2d} |'.format(y+1), end='')  # 行号
+            print('  {:>2d} |'.format(y+1), end='')  # 行号输出
             for x in range(self.dim):
                 stone = self.board[y][x]
                 if stone != 2: 
@@ -81,7 +79,7 @@ class Connect6(object):
         self.moves = [0, 0]
         return np.eye(3)[self.board].reshape(-1)
 
-    def move(self, x, y):
+    def step(self, x, y):
         """
         返回下一个状态，奖励，是否done
         """
@@ -99,7 +97,7 @@ class Connect6(object):
 
     def get_state(self):
         """
-        用于在执行一个step步后返回新的状态
+        用于在执行一个step步后返回新的状态，可以自行定义修改，也可以在AI接收到状态后自行解析成自己希望的输入状态
         """
         return np.eye(3)[self.board].reshape(-1)
 
@@ -124,6 +122,9 @@ class Connect6(object):
             return False
 
     def can_place(self, x, y):
+        """
+        判断该动作是否可以执行
+        """
         if self.is_outta_range(x, y):
             return False, '位置越界'
         elif self.board[y][x] != 2:
@@ -135,6 +136,9 @@ class Connect6(object):
         return x < 0 or x >= self.dim or y < 0 or y >= self.dim
 
     def is_over(self):
+        """
+        判断游戏是否已经结束
+        """
         board = self.board
         x, y = self.last_move
         for _dir, dir_func in self.directions.items():
