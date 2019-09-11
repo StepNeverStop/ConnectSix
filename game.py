@@ -2,16 +2,19 @@ import os
 import sys
 import numpy as np
 
-# console helper methods
-def cls():
+
+def cls():  # console helper methods
     os.system('cls' if os.name == 'nt' else 'clear')
+
 
 def darktext(str):
     return str if os.name == 'nt' else '\x1b[0;30m{}\x1b[0m'.format(str)
 
+
 def reverse_of(dir_func):
     dx, dy = dir_func(0, 0)  # differentiate
-    return lambda x, y: (x-dx, y-dy)
+    return lambda x, y: (x - dx, y - dy)
+
 
 class Connect6(object):
 
@@ -26,36 +29,36 @@ class Connect6(object):
         self.last_char = ['■', '□']     # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
         self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])   # 界面的最上部序号
         self.directions = {
-            'up':           lambda x, y: (x, y+1),
-            'right':        lambda x, y: (x+1, y),
-            'right up':     lambda x, y: (x+1, y+1),
-            'right down':   lambda x, y: (x+1, y-1),
-            'left':         lambda x, y: (x-1, y),
-            'left up':      lambda x, y: (x-1, y+1),
-            'left down':    lambda x, y: (x-1, y-1),
-            'down':         lambda x, y: (x, y-1),
+            'up': lambda x, y: (x, y + 1),
+            'right': lambda x, y: (x + 1, y),
+            'right up': lambda x, y: (x + 1, y + 1),
+            'right down': lambda x, y: (x + 1, y - 1),
+            'left': lambda x, y: (x - 1, y),
+            'left up': lambda x, y: (x - 1, y + 1),
+            'left down': lambda x, y: (x - 1, y - 1),
+            'down': lambda x, y: (x, y - 1),
         }
 
     def render(self):
         """Render交互界面"""
         cls()
-        print(' '*50+'珍珑棋局'+' '*50)
+        print(' ' * 30 + '珍珑棋局' + ' ' * 30)
         print(f'已经进行了{self.round}回合，{self.total_move}步，黑子{self.players_name[0]} {self.moves[0]}步，白子{self.players_name[1]} {self.moves[1]}步')
         print(f'请 {self.players_name[self.now_player]} 落子！你还有{2-self.move_step}个子可以下。')
         print()
-        print('     ' , self.row_info)
-        
+        print('     ', self.row_info)
+
         for y in range(self.dim):
             print('     ' + '-' * 4 * self.dim)
-            print('  {:>2d} |'.format(y+1), end='')  # 行号输出
+            print('  {:>2d} |'.format(y + 1), end='')  # 行号输出
             for x in range(self.dim):
                 stone = self.board[y][x]
-                if stone != 2: 
+                if stone != 2:
                     if x == self.last_move[0] and y == self.last_move[1]:
                         print(' ' + self.last_char[self.board[y][x]] + ' ', end='')
                     else:
                         print(' ' + self.players_char[self.board[y][x]] + ' ', end='')
-                else: 
+                else:
                     print(darktext('   '), end='')
                 print('|', end='')
             print()
@@ -70,14 +73,10 @@ class Connect6(object):
         self.total_move = 0
         self.round = 1
         self.move_step = 1
-        self.board = np.array(
-            [np.array(
-                [2 for x in range(self.dim)]
-                ) for y in range(self.dim)]
-            )
+        self.board = np.full([self.dim, self.dim], 2)
         self.now_player = 0
         self.moves = [0, 0]
-        return np.eye(3)[self.board].reshape(-1)
+        return self.board.reshape(-1)
 
     def step(self, x, y):
         """
@@ -87,11 +86,11 @@ class Connect6(object):
         self.last_move[0], self.last_move[1] = x, y
         self.total_move += 1
         self.moves[self.now_player] += 1
-        self.move_step+=1
+        self.move_step += 1
         if self.move_step == 2:
-            self.round+=1
-            self.move_step=0
-            self.now_player = (self.now_player+1) % 2
+            self.round += 1
+            self.move_step = 0
+            self.now_player = (self.now_player + 1) % 2
         s = self.get_state()
         return s
 
@@ -99,7 +98,7 @@ class Connect6(object):
         """
         用于在执行一个step步后返回新的状态，可以自行定义修改，也可以在AI接收到状态后自行解析成自己希望的输入状态
         """
-        return np.eye(3)[self.board].reshape(-1)
+        return self.board.reshape(-1)
 
     def get_reward(self):
         """
@@ -143,13 +142,15 @@ class Connect6(object):
         x, y = self.last_move
         for _dir, dir_func in self.directions.items():
             nx, ny = dir_func(x, y)
-            if self.is_outta_range(nx, ny): continue
+            if self.is_outta_range(nx, ny):
+                continue
 
             if board[ny][nx] == board[y][x]:
                 # to check properly, go to the end of direction
                 while board[ny][nx] == board[y][x]:
                     nx, ny = dir_func(nx, ny)
-                    if self.is_outta_range(nx, ny): break
+                    if self.is_outta_range(nx, ny):
+                        break
 
                 reverse_dir_func = reverse_of(dir_func)
                 nx, ny = reverse_dir_func(nx, ny)  # one step back.
@@ -159,7 +160,6 @@ class Connect6(object):
                     # returns player who won.
                     return board[ny][nx]
 
-
     def _track(self, start_x, start_y, dir_func):
         x, y = start_x, start_y
         original_player = self.board[y][x]
@@ -168,7 +168,8 @@ class Connect6(object):
         while True:
             x, y = dir_func(x, y)
             if self.is_outta_range(x, y) or self.board[y][x] != original_player:
-                if step == 6: return True
+                if step == 6:
+                    return True
                 return False
             step += 1
 

@@ -16,7 +16,11 @@
 
 目前界面如下:
 
-![](./sample.png)
+![](./imgs/sample.png)
+
+训练演示如下:
+
+![](./imgs/train_sample.png)
 
 ## 关于
 

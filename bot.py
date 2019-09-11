@@ -21,6 +21,14 @@ class Bot:
     def learn(self):
         pass
 
+    def save_checkpoint(self, global_step):
+        pass
+
+    def writer_summary(self, x, ys):
+        pass
+
+    def writer_loop_summary(self, global_step, **kargs):
+        pass
 
 class RandomBot(Bot):
 
