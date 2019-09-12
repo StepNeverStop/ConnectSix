@@ -1,5 +1,7 @@
 import numpy as np
-from .game_base import Game
+from gym.envs.classic_control import rendering
+
+from game_base import Game
 
 
 def reverse_of(dir_func):
@@ -20,6 +22,7 @@ class Connect6(Game):
 
     def __init__(self, dim):
         super().__init__(dim)
+        self.viewer = None
         self.directions = {
             'up': lambda x, y: (x, y + 1),
             'right': lambda x, y: (x + 1, y),
@@ -34,12 +37,51 @@ class Connect6(Game):
     def register(self, player_name1='Player1', player_name2='Player2'):
         super().register(player_name1, player_name2)
 
-    def render(self):
-        """Render交互界面"""
-        super().render()
-        print()
-        print(f'已经进行了{self.round}回合，{self.total_move}步，黑子{self.players_name[0]} {self.moves[0]}步，白子{self.players_name[1]} {self.moves[1]}步')
-        print(f'请 {self.players_name[self.now_player]} 落子！你还有{2-self.move_step}个子可以下。')
+    def render(self, mode='human', close=False):
+        if close:
+            if self.viewer is not None:
+                self.viewer.close()
+                self.viewer = None
+            return
+
+        gap = 30
+        screen_width = (self.dim + 1) * gap
+        screen_height = (self.dim + 1) * gap
+
+        if self.viewer is None:
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+
+        self.viewer.geoms.clear()
+
+        for i in range(1, self.dim + 1):
+            self.track = rendering.Line((gap, i * gap), (screen_width - gap, i * gap))
+            self.track.set_color(0.7, 0.7, 0.7)
+            self.viewer.add_geom(self.track)
+
+        for i in range(1, self.dim + 1):
+            self.track = rendering.Line((i * gap, gap), (i * gap, screen_height - gap))
+            self.track.set_color(0.7, 0.7, 0.7)
+            self.viewer.add_geom(self.track)
+
+        for x in range(self.dim):
+            for y in range(self.dim):
+                stone = self.board[x][y]
+                if stone == 0:
+                    self.axle = rendering.make_circle(gap / 3)
+                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.set_color(0, 0, 0)
+                    self.viewer.add_geom(self.axle)
+                elif stone == 1:
+                    self.axle = rendering.make_circle(gap / 3)
+                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.set_color(1, 1, 1)
+                    self.viewer.add_geom(self.axle)
+                    self.axle = rendering.make_circle(gap / 3, filled=False)
+                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.set_color(0, 0, 0)
+                    self.viewer.add_geom(self.axle)
+
+        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
     def reset(self):
         """
@@ -68,10 +110,11 @@ class Connect6(Game):
             self.move_step = 0
             self.now_player = (self.now_player + 1) % 2
         pass    # 此处可以根据个人需求重写返回信息
-    
+
     '''
     以下为游戏规则逻辑，不需要修改
     '''
+
     def can_place(self, x, y):
         """
         判断该动作是否可以执行
@@ -131,3 +174,19 @@ class Connect6(Game):
             return False
 
         return True
+
+
+if __name__ == "__main__":
+    c6 = Connect6(20)
+    c6.reset()
+
+    x, y = np.meshgrid(range(20), range(20))
+    x = x.flatten()
+    y = y.flatten()
+
+    cords = list(zip(x, y))
+    np.random.shuffle(cords)
+
+    for c in cords:
+        c6.step(c[0], c[1])
+        c6.render()
