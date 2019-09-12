@@ -1,28 +1,25 @@
-import os
-import sys
 import numpy as np
-
-
-def cls():  # console helper methods
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-def darktext(str):
-    return str if os.name == 'nt' else '\x1b[0;30m{}\x1b[0m'.format(str)
+from .game_base import Game
 
 
 def reverse_of(dir_func):
+    '''
+    反转搜索方向
+    '''
     dx, dy = dir_func(0, 0)  # differentiate
     return lambda x, y: (x - dx, y - dy)
 
 
-class Connect6(object):
+class Connect6(Game):
+    '''
+    连六棋游戏
+    规则：
+        黑棋先手落一子，白棋后手两子，之后每位选手交替两子
+        首先在横、竖、斜方向存在相连六个及以上同色棋子的选手获胜
+    '''
 
     def __init__(self, dim):
-        self.dim = dim  # 棋盘格维度
-        self.players_char = ['●', '○']  # 用于显示黑棋、白棋的样式
-        self.last_char = ['■', '□']     # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
-        self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])   # 界面的最上部序号
+        super().__init__(dim)
         self.directions = {
             'up': lambda x, y: (x, y + 1),
             'right': lambda x, y: (x + 1, y),
@@ -35,38 +32,14 @@ class Connect6(object):
         }
 
     def register(self, player_name1='Player1', player_name2='Player2'):
-        """
-        player_name1: 黑子， player_name2: 白子
-        """
-        assert player_name1 != player_name2, "不能给两位选手取相同的名字"
-        self.players_name = [player_name1, player_name2]
-
+        super().register(player_name1, player_name2)
 
     def render(self):
         """Render交互界面"""
-        cls()
-        print(' ' * 30 + '珍珑棋局' + ' ' * 30)
+        super().render()
+        print()
         print(f'已经进行了{self.round}回合，{self.total_move}步，黑子{self.players_name[0]} {self.moves[0]}步，白子{self.players_name[1]} {self.moves[1]}步')
         print(f'请 {self.players_name[self.now_player]} 落子！你还有{2-self.move_step}个子可以下。')
-        print()
-        print('     ', self.row_info)
-
-        for y in range(self.dim):
-            print('     ' + '-' * 4 * self.dim)
-            print('  {:>2d} |'.format(y + 1), end='')  # 行号输出
-            for x in range(self.dim):
-                stone = self.board[y][x]
-                if stone != 2:
-                    if x == self.last_move[0] and y == self.last_move[1]:
-                        print(' ' + self.last_char[self.board[y][x]] + ' ', end='')
-                    else:
-                        print(' ' + self.players_char[self.board[y][x]] + ' ', end='')
-                else:
-                    print(darktext('   '), end='')
-                print('|', end='')
-            print()
-
-        print('     ' + '-' * 4 * self.dim)
 
     def reset(self):
         """
@@ -79,11 +52,11 @@ class Connect6(object):
         self.board = np.full([self.dim, self.dim], 2)
         self.now_player = 0
         self.moves = [0, 0]
-        return self.board.reshape(-1)
+        pass    # 此处可以根据个人需求重写返回信息
 
     def step(self, x, y):
         """
-        返回下一个状态，奖励，是否done
+        执行动作并返回新的棋盘信息
         """
         self.board[y][x] = self.now_player
         self.last_move[0], self.last_move[1] = x, y
@@ -94,35 +67,11 @@ class Connect6(object):
             self.round += 1
             self.move_step = 0
             self.now_player = (self.now_player + 1) % 2
-        s = self.get_state()
-        return s
-
-    def get_state(self):
-        """
-        用于在执行一个step步后返回新的状态，可以自行定义修改，也可以在AI接收到状态后自行解析成自己希望的输入状态
-        """
-        return self.board.reshape(-1)
-
-    def get_reward(self):
-        """
-        用于定义奖励函数
-        """
-        result = self.is_over()
-        if result is not None:
-            return 1
-        else:
-            return 0
-
-    def is_done(self):
-        """
-        用于判断是否返回done
-        """
-        result = self.is_over()
-        if result is not None:
-            return True
-        else:
-            return False
-
+        pass    # 此处可以根据个人需求重写返回信息
+    
+    '''
+    以下为游戏规则逻辑，不需要修改
+    '''
     def can_place(self, x, y):
         """
         判断该动作是否可以执行
