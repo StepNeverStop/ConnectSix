@@ -46,7 +46,7 @@ class MyBot(Bot):
             self.train_v = optimizer.minimize(self.v_loss, var_list=self.v_vars, global_step=self.global_step)
 
             self.saver = tf.train.Saver(max_to_keep=5, pad_step_number=True)
-            self.writer = tf.summary.FileWriter(time.strftime("logs-%Y%m%d%H%M%S", time.localtime()), graph=self.graph)
+            self.writer = tf.summary.FileWriter(time.strftime("logs/%Y%m%d%H%M%S", time.localtime()), graph=self.graph)
             tf.summary.scalar('LOSS/v_loss', self.v_loss)
             self.summaries = tf.summary.merge_all()
 
