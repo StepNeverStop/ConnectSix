@@ -21,6 +21,8 @@ class Bot(ABC):
 
     def save_checkpoint(self, *args, **kargs):
         pass
+    def restore(self, *args, **kargs):
+        pass
     def writer_summary(self, *args, **kargs):
         pass
     def writer_loop_summary(self, *args, **kargs):
@@ -44,6 +46,13 @@ class RL_Policy(Bot):
 
     def save_checkpoint(self, global_step):
         self.saver.save(self.sess, os.path.join('./model', 'rb'), global_step=global_step, write_meta_graph=False)
+
+    def restore(self, cp_dir='./model'):
+        try:
+            self.recorder.saver.restore(self.sess, tf.train.latest_checkpoint(cp_dir))
+        except Exception as e:
+            print(e)
+            print('restore failed.')
 
     def writer_summary(self, x, ys):
         self.writer.add_summary(tf.Summary(

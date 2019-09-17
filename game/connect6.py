@@ -1,7 +1,5 @@
 import numpy as np
-from gym.envs.classic_control import rendering
-
-from game_base import Game
+from .game_base import Game
 
 
 def reverse_of(dir_func):
@@ -37,52 +35,6 @@ class Connect6(Game):
     def register(self, player_name1='Player1', player_name2='Player2'):
         super().register(player_name1, player_name2)
 
-    def render(self, mode='human', close=False):
-        if close:
-            if self.viewer is not None:
-                self.viewer.close()
-                self.viewer = None
-            return
-
-        gap = 30
-        screen_width = (self.dim + 1) * gap
-        screen_height = (self.dim + 1) * gap
-
-        if self.viewer is None:
-            self.viewer = rendering.Viewer(screen_width, screen_height)
-
-        self.viewer.geoms.clear()
-
-        for i in range(1, self.dim + 1):
-            self.track = rendering.Line((gap, i * gap), (screen_width - gap, i * gap))
-            self.track.set_color(0.7, 0.7, 0.7)
-            self.viewer.add_geom(self.track)
-
-        for i in range(1, self.dim + 1):
-            self.track = rendering.Line((i * gap, gap), (i * gap, screen_height - gap))
-            self.track.set_color(0.7, 0.7, 0.7)
-            self.viewer.add_geom(self.track)
-
-        for x in range(self.dim):
-            for y in range(self.dim):
-                stone = self.board[x][y]
-                if stone == 0:
-                    self.axle = rendering.make_circle(gap / 3)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
-                    self.axle.set_color(0, 0, 0)
-                    self.viewer.add_geom(self.axle)
-                elif stone == 1:
-                    self.axle = rendering.make_circle(gap / 3)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
-                    self.axle.set_color(1, 1, 1)
-                    self.viewer.add_geom(self.axle)
-                    self.axle = rendering.make_circle(gap / 3, filled=False)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
-                    self.axle.set_color(0, 0, 0)
-                    self.viewer.add_geom(self.axle)
-
-        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
-
     def reset(self):
         """
         重置环境，返回状态obs
@@ -92,23 +44,28 @@ class Connect6(Game):
         self.round = 1
         self.move_step = 1
         self.board = np.full([self.dim, self.dim], 2)
-        self.now_player = 0
+        self.current_player = 0
         self.moves = [0, 0]
+        self.available_actions = list(range(pow(self.dim, 2)))
         pass    # 此处可以根据个人需求重写返回信息
+
+    def get_current_player_info(self):
+        return self.current_player, self.move_step
 
     def step(self, x, y):
         """
         执行动作并返回新的棋盘信息
         """
-        self.board[y][x] = self.now_player
+        self.available_actions.remove(x+y*self.dim)
+        self.board[y][x] = self.current_player
         self.last_move[0], self.last_move[1] = x, y
         self.total_move += 1
-        self.moves[self.now_player] += 1
+        self.moves[self.current_player] += 1
         self.move_step += 1
         if self.move_step == 2:
             self.round += 1
             self.move_step = 0
-            self.now_player = (self.now_player + 1) % 2
+            self.current_player = (self.current_player + 1) % 2
         pass    # 此处可以根据个人需求重写返回信息
 
     '''
@@ -153,9 +110,11 @@ class Connect6(Game):
                 is_end = self._track(nx, ny, reverse_dir_func)
                 if is_end:
                     # returns player who won.
-                    return board[ny][nx]
+                    return True, board[ny][nx]
         if 2 not in self.board:
-            return -1
+            return True, -1
+        else:
+            return False, None
 
     def _track(self, start_x, start_y, dir_func):
         x, y = start_x, start_y
@@ -175,18 +134,3 @@ class Connect6(Game):
 
         return True
 
-
-if __name__ == "__main__":
-    c6 = Connect6(20)
-    c6.reset()
-
-    x, y = np.meshgrid(range(20), range(20))
-    x = x.flatten()
-    y = y.flatten()
-
-    cords = list(zip(x, y))
-    np.random.shuffle(cords)
-
-    for c in cords:
-        c6.step(c[0], c[1])
-        c6.render()
