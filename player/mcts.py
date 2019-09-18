@@ -141,7 +141,7 @@ class MCTSPlayer(object):
     def choose_action(self, game):
         if len(game.available_actions) > 0:
             action = self.mcts.get_action(game)
-            self.mcts.node_moveac()
+            self.mcts.node_move()
             return action % game.dim, action // game.dim
         else:
             print('棋盘已经满了，无法落子')
