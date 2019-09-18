@@ -93,13 +93,20 @@ class MCTS(object):
             game.step(action % game.dim, action // game.dim)
         available_actions_prob, _ = self.p_v_fn(game)
         end, winner = game.is_over()
+        player, player_step = game.get_current_player_info()
         if not end:
             node.expand(available_actions_prob)
-        playout_value, player_step = self.rollout2end(game)
-        node.update_recursive(playout_value, player_step)
+            winner = self.rollout2end(game)
+        if winner == -1 or winner == None:
+            value = 0
+        else:
+            if (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
+                value = 1
+            else:
+                value = -1
+        node.update_recursive(value, player_step)
 
     def rollout2end(self, game):
-        player, player_step = game.get_current_player_info()
         for i in range(self.max_step):
             end, winner = game.is_over()
             if end:
@@ -109,14 +116,7 @@ class MCTS(object):
             game.step(x, y)
         else:
             print('最大步长，算平局')
-        if winner == -1 or winner == None:
-            value = 0
-        else:
-            if (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
-                value = 1
-            else:
-                value = -1
-        return value, player_step
+        return winner
 
     def node_move(self, action=-1):
         if action in self.root.children:
@@ -141,7 +141,7 @@ class MCTSPlayer(object):
     def choose_action(self, game):
         if len(game.available_actions) > 0:
             action = self.mcts.get_action(game)
-            self.mcts.node_move()
+            self.mcts.node_moveac()
             return action % game.dim, action // game.dim
         else:
             print('棋盘已经满了，无法落子')

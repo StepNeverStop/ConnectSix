@@ -52,6 +52,9 @@ class Connect6(Game):
     def get_current_player_info(self):
         return self.current_player, self.move_step
 
+    def get_current_state(self):
+        return self.board[..., np.newaxis]
+
     def step(self, x, y):
         """
         执行动作并返回新的棋盘信息

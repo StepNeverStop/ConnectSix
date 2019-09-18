@@ -87,3 +87,10 @@ class Game(ABC):
         因为一般棋类只有对手下子致使我方输棋的情况，即不存在我方走一子然后判输的情况，故可直接根据当前选手的信息判定孰胜孰负，不需额外传输player信息
         '''
         pass
+    
+    @abstractmethod
+    def get_current_state(self):
+        '''
+        返回当前棋盘信息
+        '''
+        pass
