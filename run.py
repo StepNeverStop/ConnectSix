@@ -38,7 +38,7 @@ def generate_model(choice, param):
     elif choice == '2':
         return RandomBot(**param)
     elif choice =='3':
-        return MCTSPlayer(name=param['name'], c_puct=5, n_playout=1600, max_step=2000)
+        return MCTSPlayer(name=param['name'], c_puct=5, n_playout=1000, max_step=1000)
     elif choice == '4':
         return MyPolicy(**param)
 
@@ -57,7 +57,7 @@ def test_loop(env, players):
             try:
                 x, y = players[now_player].choose_action(env)
                 print(players[now_player].name, x, y)
-                input()
+                # input()
                 # print(f'{players[now_player].name}选择, x: {x+1}, y: {y+1}')
                 is_ok, msg = env.can_place(x, y)
                 if not is_ok:

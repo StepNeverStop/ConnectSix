@@ -3,12 +3,13 @@ import time
 import tensorflow as tf
 from abc import ABC, abstractmethod
 
+
 class Bot(ABC):
     """ A bot class. Override this class to implement your own Connect6 AI. """
 
-    def __init__(self, dim = 19, name='bot'):
+    def __init__(self, dim=19, name='bot'):
         assert type(dim) == int and dim > 0
-        self.name=name
+        self.name = name
         self.dim = dim
 
     @abstractmethod
@@ -21,17 +22,23 @@ class Bot(ABC):
 
     def save_checkpoint(self, *args, **kargs):
         pass
+
     def restore(self, *args, **kargs):
         pass
+
     def writer_summary(self, *args, **kargs):
         pass
+
     def writer_loop_summary(self, *args, **kargs):
         pass
+
     def learn(self, *args, **kargs):
         pass
+
     def store(self, *args, **kargs):
         pass
-    
+
+
 class RL_Policy(Bot):
     def __init__(self, dim=19, name='rl_policy'):
         super().__init__(dim, name)
@@ -69,7 +76,6 @@ class RL_Policy(Bot):
     @abstractmethod
     def learn(self):
         pass
-        
+
     def store(self, **kargs):
         pass
-

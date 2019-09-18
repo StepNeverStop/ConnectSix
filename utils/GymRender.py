@@ -1,5 +1,6 @@
 from gym.envs.classic_control import rendering
 
+
 class GymRender(object):
 
     def __init__(self):
@@ -34,18 +35,20 @@ class GymRender(object):
         for x in range(game.dim):
             for y in range(game.dim):
                 stone = game.board[x][y]
+                _y = game.dim - x - 1
+                _x = y
                 if stone == 0:
                     self.axle = rendering.make_circle(gap / 3)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.add_attr(rendering.Transform(translation=((_x + 1) * gap, (_y + 1) * gap)))
                     self.axle.set_color(0, 0, 0)
                     self.viewer.add_geom(self.axle)
                 elif stone == 1:
                     self.axle = rendering.make_circle(gap / 3)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.add_attr(rendering.Transform(translation=((_x + 1) * gap, (_y + 1) * gap)))
                     self.axle.set_color(1, 1, 1)
                     self.viewer.add_geom(self.axle)
                     self.axle = rendering.make_circle(gap / 3, filled=False)
-                    self.axle.add_attr(rendering.Transform(translation=((x + 1) * gap, (y + 1) * gap)))
+                    self.axle.add_attr(rendering.Transform(translation=((_x + 1) * gap, (_y + 1) * gap)))
                     self.axle.set_color(0, 0, 0)
                     self.viewer.add_geom(self.axle)
 

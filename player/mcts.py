@@ -2,8 +2,9 @@
 import numpy as np
 import copy
 
+
 def p_v_fn(game):
-    action_probs = np.ones(len(game.available_actions))/len(game.available_actions)
+    action_probs = np.ones(len(game.available_actions)) / len(game.available_actions)
     return zip(game.available_actions, action_probs), 0
 
 
@@ -33,14 +34,14 @@ class Node(object):
         '''
         给当前节点选择一个动作， c_puct控制探索
         '''
-        return max(self.children.items(), key = lambda item: item[-1].get_Q(c_puct))
+        return max(self.children.items(), key=lambda item: item[-1].get_Q(c_puct))
 
     def update_recursive(self, leaf_value, player_step):
         '''
         递归函数，向上更新 n, w, q
         '''
         if self.parent:
-            self.parent.update_recursive(leaf_value if player_step==0 else -leaf_value, (player_step+1)%2)
+            self.parent.update_recursive(leaf_value if player_step == 0 else -leaf_value, (player_step + 1) % 2)
         self.update(leaf_value)
 
     def update(self, value):
@@ -55,7 +56,10 @@ class Node(object):
         '''
         获取用于选动作的值，UCB公式，一般用于父节点根据子节点的值选择动作，所以不需要判断parent是否为None
         '''
-        u = c_puct * self.p * np.sqrt(self.parent.n / (1 + self.n))
+        if self.n == 0:
+            u = float("inf")
+        else:
+            u = c_puct * self.p * np.sqrt(self.parent.n / (1 + self.n))
         return self.q + u
 
     def is_leaf(self):
@@ -63,6 +67,7 @@ class Node(object):
 
     def is_root(self):
         return self.parent == None
+
 
 class MCTS(object):
 
@@ -78,7 +83,7 @@ class MCTS(object):
         self.c_puct = c_puct
         self.n_playout = n_playout
         self.max_step = max_step
-    
+
     def playout(self, game):
         node = self.root
         while True:
@@ -93,7 +98,6 @@ class MCTS(object):
         playout_value, player_step = self.rollout2end(game)
         node.update_recursive(playout_value, player_step)
 
-    
     def rollout2end(self, game):
         player, player_step = game.get_current_player_info()
         for i in range(self.max_step):
@@ -105,10 +109,10 @@ class MCTS(object):
             game.step(x, y)
         else:
             print('最大步长，算平局')
-        if winner==-1 or winner==None:
+        if winner == -1 or winner == None:
             value = 0
         else:
-            if (player_step==1 and player==winner) or (player_step ==0 and player!=winner):
+            if (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
                 value = 1
             else:
                 value = -1
@@ -120,7 +124,7 @@ class MCTS(object):
             self.root.parent = None
         else:
             self.root = Node(None, 1.0)
-    
+
     def get_action(self, game):
         for i in range(self.n_playout):
             game_copy = copy.deepcopy(game)

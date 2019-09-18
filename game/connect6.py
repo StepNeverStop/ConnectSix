@@ -56,7 +56,7 @@ class Connect6(Game):
         """
         执行动作并返回新的棋盘信息
         """
-        self.available_actions.remove(x+y*self.dim)
+        self.available_actions.remove(x + y * self.dim)
         self.board[y][x] = self.current_player
         self.last_move[0], self.last_move[1] = x, y
         self.total_move += 1
@@ -133,4 +133,3 @@ class Connect6(Game):
             return False
 
         return True
-
