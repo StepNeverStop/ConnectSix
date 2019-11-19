@@ -1,13 +1,30 @@
+# coding: utf-8
+# athor: Keavnn
+
 import sys
 import time
 import numpy as np
+from absl import app, flags, logging
+from absl.flags import FLAGS
 from game import Connect6, Connect6WJS
 from player import RandomBot, Player, MyPolicy, MCTSPlayer
 from utils.GymRender import GymRender
 
-def run():
+flags.DEFINE_integer('size', 19, 'size of board')
+flags.DEFINE_boolean('train', False, 'whether train or not')
+flags.DEFINE_enum('p1_mode', 'random', ['random', 'player', 'mcts'],
+                  'random: random agents, '
+                  'player: manual play, '
+                  'mcts: monte-carlo tree search')
+flags.DEFINE_enum('p2_mode', 'random', ['random', 'player', 'mcts'],
+                  'random: random agents, '
+                  'player: manual play, '
+                  'mcts: monte-carlo tree search')
+flags.DEFINE_float('learning_rate', 5e-4, 'learning rate')
+
+def main(_argv)::
     # 设置棋盘维度
-    BOARD_DIMENSION = 19
+    BOARD_DIMENSION = FLAGS.size
     print('Welcome to Keavnn\'s Connect6.')
     print('Choose now_player slot. (1=Player 2=AI)')
     print(
@@ -154,5 +171,8 @@ def train_loop(env, players):
                 states[now_player][0] = states[(now_player + 1) % 2][1]
 
 if __name__ == '__main__':
-    run()
+    try:
+        app.run(main)
+    except SystemExit:
+        pass
     

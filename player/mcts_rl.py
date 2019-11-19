@@ -4,11 +4,7 @@ import copy
 import tensorflow as tf
 from .bot_base import RL_Policy
 from utils.replay_buffer import ExperienceReplay
-
-initKernelAndBias = {
-    'kernel_initializer': tf.random_normal_initializer(0.0, .1),
-    'bias_initializer': tf.constant_initializer(0.1, dtype=tf.float32)
-}
+from utils.nn.nets import PV
 
 
 class PV(RL_Policy):
@@ -16,61 +12,46 @@ class PV(RL_Policy):
         super().__init__(dim, name)
         self.lr = 0.0005
         self.data = ExperienceReplay(batch_size=100, capacity=10000)
-        with self.graph.as_default():
-            self.pl_s = tf.placeholder(tf.float32, [None, self.dim, self.dim, 8], 'state')
-            self.pl_v = tf.placeholder(tf.float32, [None, 1], 'real_value')
-            self.pl_probs = tf.placeholder(tf.float32, [None, self.dim * self.dim], 'available_actions_prob')
+        self.net = PV(dim=[self.dim, self.dim, 8], name='pv_net')
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
 
-            self.action_probs, self.v = self.nn('PV', self.pl_s)
-
-            self.p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(self.pl_probs, self.action_probs), axis=-1))
-            self.v_loss = tf.reduce_mean(tf.squared_difference(self.v, self.pl_v))
-            self.loss = self.v_loss + self.p_loss
-            self.nn_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='PV')
-            optimizer = tf.train.AdamOptimizer(self.lr)
-            self.train = optimizer.minimize(self.loss, var_list=self.nn_vars, global_step=self.global_step)
-
-            tf.summary.scalar('LOSS/p_loss', self.p_loss)
-            tf.summary.scalar('LOSS/v_loss', self.v_loss)
-            tf.summary.scalar('LOSS/loss', self.loss)
-            self.summaries = tf.summary.merge_all()
-
-            self.sess.run(tf.global_variables_initializer())
-
-        def nn(self, name, input_info):
-            with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-                conv1 = tf.layers.conv2d(inputs=input_info, filters=32, kernel_size=[3, 3], padding="same", data_format="channels_last", activation=tf.nn.relu)
-                conv2 = tf.layers.conv2d(inputs=conv1, filters=64, kernel_size=[3, 3], padding="same", data_format="channels_last", activation=tf.nn.relu)
-                conv3 = tf.layers.conv2d(inputs=conv2, filters=128, kernel_size=[3, 3], padding="same", data_format="channels_last", activation=tf.nn.relu)
-                action_conv = tf.layers.conv2d(inputs=conv3, filters=8, kernel_size=[1, 1], padding="same", data_format="channels_last", activation=tf.nn.relu)
-                action_conv_flat = tf.reshape(action_conv, [-1, 8 * self.dim * self.dim])
-                l1 = tf.layers.dense(action_conv_flat, 512, tf.nn.relu, **initKernelAndBias)
-                l2 = tf.layers.dense(l1, 512, tf.nn.relu, **initKernelAndBias)
-                actions_prob = tf.layers.dense(l2, self.dim * self.dim, tf.nn.log_softmax, **initKernelAndBias)
-
-                v_conv = tf.layers.conv2d(inputs=conv3, filters=4, kernel_size=[2, 2], padding="same", data_format="channels_last", activation=tf.nn.relu)
-                v_conv_flat = tf.reshape(v_conv, [-1, 4 * self.dim * self.dim])
-                l3 = tf.layers.dense(v_conv_flat, 256, tf.nn.relu, **initKernelAndBias)
-                v = tf.layers.dense(l3, 1, tf.nn.tanh, **initKernelAndBias)
-                return actions_prob, v
+        @tf.function
+        def _get_probs_and_v(self, state):
+            return self.net(state)
 
         def get_probs_and_v(self, game):
             state = game.get_current_state()
-            log_actions_prob, value = self.sess.run([self.actions_prob, self.v], feed_dict={
-                self.pl_s: state
-            })
+            log_actions_prob, value = self._get_probs_and_v(state)
             actions_prob = np.exp(log_actions_prob)
             available_actions_prob = zip(game.available_actions, actions_prob[0][game.available_actions])
             return available_actions_prob, value
 
         def learn(self):
             s, p, v = self.data.sample()
-            summaries, _ = self.sess.run([self.summaries, self.train_v], feed_dict={
-                self.pl_s: s,
-                self.pl_p: p,
-                self.pl_v: v
-            })
-            self.writer.add_summary(summaries, self.sess.run(self.global_step))
+            summaries = self.train(s, p, v)
+            tf.summary.experimental.set_step(self.global_step)
+            self.write_training_summaries(summaries)
+            tf.summary.scalar('LEARNING_RATE/lr', self.lr)
+            self.recorder.writer.flush()
+
+        @tf.function
+        def train(s, p, v):
+            with tf.device(self.device):
+                with tf.GradientTape() as tape:
+                    action_probs, predict_v = self.net(s)
+                    p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, action_probs), axis=-1))
+                    v_loss = tf.reduce_mean((v - predict_v) ** 2)
+                    loss = v_loss + p_loss
+                grads = tape.gradient(loss, self.net.trainable_variables)
+                self.optimizer.apply_gradients(
+                    zip(grads, self.net.trainable_variables)
+                )
+                self.global_step.assign_add(1)
+                return dict([
+                    ['LOSS/v_loss', v_loss],
+                    ['LOSS/p_loss', p_loss],
+                    ['LOSS/loss', loss],
+                ])
 
         def store(self, **kargs):
             self.data.add(*kargs.values())

@@ -8,7 +8,7 @@ class Bot(ABC):
     """ A bot class. Override this class to implement your own Connect6 AI. """
 
     def __init__(self, dim=19, name='bot'):
-        assert type(dim) == int and dim > 0
+        assert isinstance(dim, int) and dim > 0
         self.name = name
         self.dim = dim
 
@@ -39,39 +39,42 @@ class Bot(ABC):
         pass
 
 
-class RL_Policy(Bot):
+class RL_Policy(Bot, tf.keras.Model):
     def __init__(self, dim=19, name='rl_policy'):
-        super().__init__(dim, name)
-        tf.reset_default_graph()
-        self.graph = tf.Graph()
-        gpu_options = tf.GPUOptions(allow_growth=True)
-        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options), graph=self.graph)
-        with self.graph.as_default():
-            self.global_step = tf.get_variable('global_step', shape=(), initializer=tf.constant_initializer(value=0), trainable=False)
-            self.saver = tf.train.Saver(max_to_keep=5, pad_step_number=True)
-            self.writer = tf.summary.FileWriter(time.strftime("logs/%Y%m%d%H%M%S", time.localtime()), graph=self.graph)
+        Bot.__init__(dim, name)
+        tf.keras.Model.__init__()
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        if len(physical_devices) > 0:
+            self.device = "/gpu:0"
+            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        else:
+            self.device = "/cpu:0"
+        tf.keras.backend.set_floatx('float32')
+        self.global_step = tf.Variable(0, name="global_step", trainable=False, dtype=tf.int64)
+        self.checkpoint = tf.train.Checkpoint(policy=self)
+        self.saver = tf.train.CheckpointManager(self.checkpoint, directory='./model', max_to_keep=5, checkpoint_name='rb')
+        self.writer = tf.summary.create_file_writer(time.strftime("logs/%Y%m%d%H%M%S", time.localtime())
 
     def save_checkpoint(self, global_step):
-        self.saver.save(self.sess, os.path.join('./model', 'rb'), global_step=global_step, write_meta_graph=False)
+        self.saver.save(checkpoint_number=global_step)
 
     def restore(self, cp_dir='./model'):
-        try:
-            self.recorder.saver.restore(self.sess, tf.train.latest_checkpoint(cp_dir))
-        except Exception as e:
-            print(e)
-            print('restore failed.')
-
-    def writer_summary(self, x, ys):
-        self.writer.add_summary(tf.Summary(
-            value=[
-                tf.Summary.Value(tag=y['tag'], simple_value=y['value']) for y in ys
-            ]), x)
+        if os.path.exists(os.path.join(cp_dir, 'checkpoint')):
+            try:
+                self.checkpoint.restore(self.saver.latest_checkpoint)
+            except:
+                print('restore model from checkpoint FAILED.')
+            else:
+                print('restore model from checkpoint SUCCUESS.')
+        else:
+            raise Exception(f'model file {cp_dir} cannot be found')
 
     def writer_loop_summary(self, global_step, **kargs):
-        self.writer_summary(
-            x=global_step,
-            ys=[{'tag': 'MAIN/' + key, 'value': kargs[key]} for key in kargs]
-        )
+        self.writer.set_as_default()
+        tf.summary.experimental.set_step(global_step)
+        for i in [{'tag': 'MAIN/' + key, 'value': kargs[key]} for key in kargs]:
+            tf.summary.scalar(i['tag'], i['value'])
+        self.writer.flush()
 
     @abstractmethod
     def learn(self):
@@ -79,3 +82,10 @@ class RL_Policy(Bot):
 
     def store(self, **kargs):
         pass
+
+    def write_training_summaries(self, summaries: dict):
+        '''
+        write tf summaries showing in tensorboard.
+        '''
+        for key, value in summaries.items():
+            tf.summary.scalar(key, value)
