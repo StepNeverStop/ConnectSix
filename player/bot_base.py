@@ -39,10 +39,9 @@ class Bot(ABC):
         pass
 
 
-class RL_Policy(Bot, tf.keras.Model):
-    def __init__(self, dim=19, name='rl_policy'):
-        Bot.__init__(dim, name)
-        tf.keras.Model.__init__()
+class RL_Policy(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super().__init__()
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         if len(physical_devices) > 0:
             self.device = "/gpu:0"

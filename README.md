@@ -27,6 +27,7 @@
 - python 3.6
 - tensorflow-gpu 2.0
 - gym
+- pyyaml
 
 ## 关于
 
