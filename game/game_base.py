@@ -2,6 +2,7 @@ import os
 import numpy as np
 from abc import ABC, abstractmethod
 
+
 def cls():  # console helper methods
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -16,8 +17,9 @@ class Game(ABC):
     双人对战棋类
     黑棋先行，白棋后手，黑棋用下标0表示，白棋用下标1或-1表示
     """
-    def __init__(self, dim):
-        self.dim = dim                                      # 棋盘格维度
+
+    def __init__(self, **kwargs):
+        self.dim = int(kwargs.get('dim', 19))               # 棋盘格维度
         self.players_char = ['●', '○']                      # 用于显示黑棋、白棋的样式
         self.player_order = ['黑棋', '白棋']                 # 定义下棋顺序
         self.board = np.full([self.dim, self.dim], -1)      # 用于初始化棋盘
@@ -27,9 +29,9 @@ class Game(ABC):
         self.round = 1                                      # 用于统计目前进行到了第几回合，因为有些棋类会出现一回合进行多步操作的情况，所以可能会存在total_move与round不等的情况
         self.now_player = 0                                 # 用于记录目前落子的选手是黑子还是白子
         self.moves = [0, 0]                                 # 用于分别统计两位选手的步数
-        self.row_info = '  '.join([f'{i+1:>2d}' for i in range(dim)])   # 用于渲染时显示棋盘上部数字上标
+        self.row_info = '  '.join([f'{i:>2d}' for i in range(self.dim)])   # 用于渲染时显示棋盘上部数字上标
         self.register()
-    
+
     def register(self, player_name1='Player1', player_name2='Player2'):
         """
         用于注册两位选手的名字，因为在render函数会需要选手名字的信息，所以可以在游戏开始前通过该函数将选手信息传递进来
@@ -44,13 +46,13 @@ class Game(ABC):
         '''
         """Render交互界面"""
         cls()
-        print(' ' * 30 + '珍珑棋局' + ' ' * 30) # 标题
+        print(' ' * 30 + '珍珑棋局' + ' ' * 30)  # 标题
         print()
         print('     ', self.row_info)   # 棋盘顶部数字标号
 
         for y in range(self.dim):
-            print('     ' + '-' * 4 * self.dim) # 横线界
-            print('  {:>2d} |'.format(y + 1), end='')  # 行号
+            print('     ' + '-' * 4 * self.dim)  # 横线界
+            print('  {:>2d} |'.format(y), end='')  # 行号
             for x in range(self.dim):   # 显示棋子样式
                 stone = self.board[y][x]
                 if stone != 2:
@@ -60,11 +62,11 @@ class Game(ABC):
                         print(' ' + self.players_char[self.board[y][x]] + ' ', end='')
                 else:
                     print(darktext('   '), end='')
-                print('|', end='')  #竖线界
+                print('|', end='')  # 竖线界
             print()
 
-        print('     ' + '-' * 4 * self.dim) # 最底部横线界
-    
+        print('     ' + '-' * 4 * self.dim)  # 最底部横线界
+
     @abstractmethod
     def reset(self):
         '''
@@ -87,7 +89,7 @@ class Game(ABC):
         因为一般棋类只有对手下子致使我方输棋的情况，即不存在我方走一子然后判输的情况，故可直接根据当前选手的信息判定孰胜孰负，不需额外传输player信息
         '''
         pass
-    
+
     @abstractmethod
     def get_current_state(self):
         '''

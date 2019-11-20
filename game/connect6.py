@@ -18,9 +18,8 @@ class Connect6(Game):
         首先在横、竖、斜方向存在相连六个及以上同色棋子的选手获胜
     '''
 
-    def __init__(self, dim):
-        super().__init__(dim)
-        self.viewer = None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.directions = {
             'up': lambda x, y: (x, y + 1),
             'right': lambda x, y: (x + 1, y),
@@ -127,12 +126,12 @@ class Connect6(Game):
         while True:
             x, y = dir_func(x, y)
             if self.is_outta_range(x, y) or self.board[y][x] != original_player:
-                if step == 6:
+                if step >= 6:   # 同色连子数大于等于6个时，判定为胜
                     return True
                 return False
             step += 1
 
         if step > 6:
-            return False
+            return True
 
         return True

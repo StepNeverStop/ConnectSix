@@ -4,6 +4,7 @@ from tensorflow.keras.layers import Dense, Conv2D
 
 activation_fn = tf.keras.activations.tanh
 
+
 class mlp(Sequential):
     def __init__(self, hidden_units, act_fn=activation_fn, output_shape=1, out_activation=None, out_layer=True):
         """
@@ -19,12 +20,13 @@ class mlp(Sequential):
         if out_layer:
             self.add(Dense(output_shape, out_activation))
 
+
 class convs(Sequential):
 
-    def __init__(self, act_fn=activation_fn, filters=[32, 64, 128], 
-                 kernel_size=[[3, 3]
-                              [3, 3], 
-                              [3, 3]], 
+    def __init__(self, act_fn=activation_fn, filters=[32, 64, 128],
+                 kernel_size=[[3, 3],
+                              [3, 3],
+                              [3, 3]],
                  padding="same", data_format="channels_last"):
         super().__init__()
         for i in range(len(filters)):

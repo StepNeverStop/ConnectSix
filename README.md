@@ -22,6 +22,12 @@
 
 ![](./imgs/train_sample.png)
 
+## 需要用到的库
+
+- python 3.6
+- tensorflow-gpu 2.0
+- gym
+
 ## 关于
 
 该游戏环境逻辑脚本的代码借鉴了[therete/connect6-python](https://github.com/therne/connect6-python)的仓库

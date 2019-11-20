@@ -130,7 +130,6 @@ class MCTS(object):
         self.p_v_fn = p_v_fn
         self.c_puct = c_puct
         self.n_playout = n_playout
-        
 
     def playout(self, game):
         node = self.root

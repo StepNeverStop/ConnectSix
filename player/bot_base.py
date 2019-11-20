@@ -53,7 +53,7 @@ class RL_Policy(Bot, tf.keras.Model):
         self.global_step = tf.Variable(0, name="global_step", trainable=False, dtype=tf.int64)
         self.checkpoint = tf.train.Checkpoint(policy=self)
         self.saver = tf.train.CheckpointManager(self.checkpoint, directory='./model', max_to_keep=5, checkpoint_name='rb')
-        self.writer = tf.summary.create_file_writer(time.strftime("logs/%Y%m%d%H%M%S", time.localtime())
+        self.writer = tf.summary.create_file_writer(time.strftime("logs/%Y%m%d%H%M%S", time.localtime()))
 
     def save_checkpoint(self, global_step):
         self.saver.save(checkpoint_number=global_step)

@@ -1,10 +1,11 @@
 import numpy as np
 from .connect6 import Connect6
 
+
 class Connect6WJS(Connect6):
 
-    def __init__(self, dim):
-        super().__init__(dim)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def reset(self):
         super().reset()

@@ -12,23 +12,20 @@ class MyPolicy(RL_Policy):
 
     def __init__(self, dim, name='wjs_policy'):
         super().__init__(dim, name)
-        
+
         self.state_dim = dim * dim * 3
         self.gamma = 0.99
         self.lr = 0.0005
-        self.data = ExperienceReplay(batch_size = 100, capacity=10000)
+        self.data = ExperienceReplay(batch_size=100, capacity=10000)
         self.v_net = V(vector_dim=self.state_dim, name='v_net', hidden_units=[128, 64, 32])
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
-    
 
     def update_offset(self, offset):
         assert isinstance(offset, int)
         self.offset = offset
 
-
     def store(self, **kargs):
         self.data.add(*kargs.values())
-
 
     @tf.function
     def _get_action(self, state):
@@ -46,9 +43,9 @@ class MyPolicy(RL_Policy):
     def learn(self):
         try:
             s, r, s_, done = self.data.sample()
-            s = np.eye(3)[s].reshape(s.shape[0],-1)
+            s = np.eye(3)[s].reshape(s.shape[0], -1)
             r = r[:, np.newaxis]
-            s_ = np.eye(3)[s_].reshape(s.shape[0],-1)
+            s_ = np.eye(3)[s_].reshape(s.shape[0], -1)
             done = done[:, np.newaxis]
             summaries = self.train(s, r, s_, done)
             tf.summary.experimental.set_step(self.global_step)
@@ -58,7 +55,7 @@ class MyPolicy(RL_Policy):
         except Exception as e:
             print(e)
             return
-    
+
     @tf.function
     def train(self, s, r, s_, done):
         with tf.device(self.device):
