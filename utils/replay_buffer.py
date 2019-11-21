@@ -16,10 +16,6 @@ class ReplayBuffer(ABC):
     def sample(self) -> list:
         pass
 
-    @abstractmethod
-    def add(self, *args) -> None:
-        pass
-
     def is_empty(self):
         return self._size == 0
 
@@ -33,15 +29,11 @@ class ExperienceReplay(ReplayBuffer):
         self._data_pointer = 0
         self._buffer = np.empty(capacity, dtype=object)
 
-    def add(self, *args):
+    def add(self, data):
         '''
-        change [s, s],[a, a],[r, r] to [s, a, r],[s, a, r] and store every item in it.
+        [s, a, r],[s, a, r] and store every item in it.
         '''
-        if hasattr(args[-1], '__len__'):
-            for i in range(len(args[0])):
-                self._store_op(list(arg[i] for arg in args))
-        else:
-            self._store_op(args)
+        self._store_op(data)
 
     def _store_op(self, data):
         self._buffer[self._data_pointer] = data

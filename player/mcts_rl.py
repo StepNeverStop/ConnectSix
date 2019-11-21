@@ -29,13 +29,15 @@ class MCTS_POLICY(RL_Policy):
 
     @tf.function
     def _get_probs_and_v(self, state):
-        return self.net(state)
+        with tf.device(self.device):
+            state = tf.transpose(state, [0, 2, 3, 1])
+            return self.net(state)
 
     def get_probs_and_v(self, game):
         '''
         输入状态，获得相应可选动作的概率和当前节点的预期价值
         '''
-        state = game.get_current_state()
+        state = game.get_current_state().reshape(-1, 4, game.dim, game.dim)
         log_actions_prob, value = self._get_probs_and_v(state)
         actions_prob = np.exp(log_actions_prob)
         available_actions_prob = zip(game.available_actions, actions_prob[0][game.available_actions])
@@ -68,8 +70,9 @@ class MCTS_POLICY(RL_Policy):
                 ['LOSS/loss', loss],
             ])
 
-    def store(self, **kargs):
-        self.data.add(*kargs.values())
+    def store(self, data:list):
+        for i in data:
+            self.data.add(i)
 
 
 class Node(object):
@@ -214,3 +217,6 @@ class MCTSRL(Bot):
                 return x, y
         else:
             print('棋盘已经满了，无法落子')
+
+    def reset_tree(self):
+        self.mcts.node_move(action=-1)

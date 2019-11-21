@@ -2,6 +2,7 @@
 # athor: Keavnn
 import os
 import yaml
+import numpy as np
 from pprint import pprint
 from absl import app, flags, logging
 from absl.flags import FLAGS
@@ -46,13 +47,38 @@ def main(_argv):
     )
     train_mcts_rl(env, player, config)
 
+def augment_data(dim, data):
+    '''
+    增广数据集
+    '''
+    extend_data = []
+    for state, mcts_porb, winner in data:
+        for i in [1, 2, 3, 4]:
+            # rotate counterclockwise
+            equi_state = np.array([np.rot90(s, i) for s in state])
+            equi_mcts_prob = np.rot90(np.flipud(
+                mcts_porb.reshape(dim, dim)), i)
+            extend_data.append((equi_state,
+                                np.flipud(equi_mcts_prob).flatten(),
+                                winner))
+            # flip horizontally
+            equi_state = np.array([np.fliplr(s) for s in equi_state])
+            equi_mcts_prob = np.fliplr(equi_mcts_prob)
+            extend_data.append((equi_state,
+                                np.flipud(equi_mcts_prob).flatten(),
+                                winner))
+    return extend_data
 
 def train_mcts_rl(env, player, kwargs: dict):
     game_batch = kwargs.get('game_batch', 1600)
     game_batch_size = kwargs.get('game_batch_size', 1)
     for i in range(game_batch):
         for j in range(game_batch_size):
-            env.self_play(player)
+            data = env.self_play(player)
+            data = list(data)[:]
+            data = augment_data(env.dim, data)
+            player.net.store(data)
+        player.net.learn()
     pass
 
 

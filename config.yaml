@@ -3,7 +3,7 @@ learning_rate: 5.0e-4 # 学习率
 temp: 1.0 # 温控系数，控制输出动作概率进行softmax的加权
 c_puct: 5 # 控制playout时选动作Q与N的加权
 buffer_size: 100000 # 经验池大小
-batch_size: 512 # 取经验的batch大小
+batch_size: 10 # 取经验的batch大小
 playout_num: 10  # 在每步playout多少次
 game_batch: 200  # 共进行多少批次对局
 game_batch_size: 1  # 每批游戏中，有几盘游戏用于存储经验，一个batch游戏结束后，开始训练

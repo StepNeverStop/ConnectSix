@@ -20,24 +20,6 @@ class Bot(ABC):
         raise NotImplementedError("Implement this to build your own AI.")
         pass
 
-    def save_checkpoint(self, *args, **kargs):
-        pass
-
-    def restore(self, *args, **kargs):
-        pass
-
-    def writer_summary(self, *args, **kargs):
-        pass
-
-    def writer_loop_summary(self, *args, **kargs):
-        pass
-
-    def learn(self, *args, **kargs):
-        pass
-
-    def store(self, *args, **kargs):
-        pass
-
 
 class RL_Policy(tf.keras.Model):
     def __init__(self, **kwargs):

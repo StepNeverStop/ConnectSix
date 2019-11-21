@@ -111,8 +111,11 @@ class Connect6(Game):
 
                 is_end = self._track(nx, ny, reverse_dir_func)
                 if is_end:
-                    # returns player who won.
-                    return True, board[ny][nx]
+                    if board[ny][nx] == 2:
+                        return False, None
+                    else:
+                        # returns player who won.
+                        return True, board[ny][nx]
         if 2 not in self.board:
             return True, -1
         else:
