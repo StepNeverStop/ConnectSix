@@ -82,3 +82,20 @@ class C6(Connect6):
                     winners_z[np.array(players) != winner] = -1.0
                 player.reset_tree()
                 return zip(states, probs, players)
+
+    def play(self, player1, player2):
+        self.reset()
+        while True:
+            if self.current_player == 0:
+                x, y = player1.choose_action(self, return_prob=False, is_self_play=False)
+            else:
+                x, y = player2.choose_action(self, return_prob=False, is_self_play=False)
+            end, winner = self.is_over()
+            if end:
+                if winner == -1:
+                    return False
+                if winner == 0:
+                    return True
+                if winner == 1:
+                    return False
+        pass

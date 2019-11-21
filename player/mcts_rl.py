@@ -19,10 +19,12 @@ class MCTS_POLICY(RL_Policy):
                  learning_rate,
                  buffer_size,
                  batch_size,
+                 epochs,
                  name='wjs_policy'
                  ):
         super().__init__()
         self.lr = learning_rate
+        self.epochs = epochs
         self.data = ExperienceReplay(batch_size=batch_size, capacity=buffer_size)
         self.net = PV(state_dim=state_dim, name='pv_net')
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
@@ -45,11 +47,12 @@ class MCTS_POLICY(RL_Policy):
 
     def learn(self):
         s, p, v = self.data.sample()
-        summaries = self.train(s, p, v)
-        tf.summary.experimental.set_step(self.global_step)
-        self.write_training_summaries(summaries)
-        tf.summary.scalar('LEARNING_RATE/lr', self.lr)
-        self.recorder.writer.flush()
+        for i in range(self.epochs):
+            summaries = self.train(s, p, v)
+            tf.summary.experimental.set_step(self.global_step)
+            self.write_training_summaries(summaries)
+            tf.summary.scalar('LEARNING_RATE/lr', self.lr)
+            self.recorder.writer.flush()
 
     @tf.function
     def train(s, p, v):
@@ -58,7 +61,9 @@ class MCTS_POLICY(RL_Policy):
                 action_probs, predict_v = self.net(s)
                 p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, action_probs), axis=-1))
                 v_loss = tf.reduce_mean((v - predict_v) ** 2)
-                loss = v_loss + p_loss
+                l2_penalty = 1e-4 * tf.add_n(
+                    [tf.nn.l2_loss(v) for v in self.net.trainable_variables if 'bias' not in v.name.lower()])
+                loss = v_loss + p_loss + l2_penalty
             grads = tape.gradient(loss, self.net.trainable_variables)
             self.optimizer.apply_gradients(
                 zip(grads, self.net.trainable_variables)
@@ -84,10 +89,10 @@ class Node(object):
         '''
         self.parent = parent
         self.children = {}
-        self.n = 0
-        self.q = 0
-        self.w = 0
-        self.p = prior_prob
+        self.n = 0  # 访问次数
+        self.q = 0  # 平均Q值
+        self.w = 0  # 总值
+        self.p = prior_prob # 由神经网络预测的先验概率
 
     def expand(self, available_actions_prob):
         '''
@@ -156,13 +161,14 @@ class MCTS(object):
             if node.is_leaf():
                 break
             action, node = node.select(self.c_puct)
-            game.step(action % game.dim, action // game.dim)
+            x, y = action % game.dim, action // game.dim
+            game.step(x, y)
         available_actions_prob, value = self.p_v_fn(game)
         end, winner = game.is_over()
         player, player_step = game.get_current_player_info()
         if not end:
             node.expand(available_actions_prob)
-        else:
+        else:   # TODO: 测试结果反传是否正确
             if winner == -1:
                 value = 0
             elif (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
@@ -185,7 +191,7 @@ class MCTS(object):
         action_visits = [(action_index, node.n)
                          for action_index, node in self.root.children.items()]
         action_index, visits = zip(*action_visits)
-        action_probs = softmax(1.0 / self.temp * np.log(np.array(visits) + 1e-10))  # TODO:测试softmax
+        action_probs = softmax(1.0 / self.temp * np.log(np.array(visits) + 1e-10))
         return action_index, action_probs
 
 
