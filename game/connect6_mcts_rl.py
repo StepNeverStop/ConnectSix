@@ -15,7 +15,7 @@ class C6(Connect6):
         """
         执行动作并返回新的棋盘信息
         """
-        self.states[x+y*self.dim] = self.current_player
+        self.states[x + y * self.dim] = self.current_player
         super().step(x, y)
 
     def get_state(self):
@@ -43,7 +43,7 @@ class C6(Connect6):
             return True
         else:
             return False
-    
+
     def get_current_state(self):
         square_state = np.zeros((4, self.dim, self.dim))
         if self.states:
@@ -54,7 +54,7 @@ class C6(Connect6):
                             move_curr // self.dim] = 1.0
             square_state[1][move_oppo % self.dim,
                             move_oppo // self.dim] = 1.0
-            
+
             square_state[2][self.last_move[0],
                             self.last_move[1]] = 1.0
         if self.current_player == 0:

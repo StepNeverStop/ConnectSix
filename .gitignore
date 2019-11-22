@@ -105,5 +105,6 @@ venv.bak/
 .mypy_cache/
 
 test/
-logs/
 test.py
+logs/
+models/

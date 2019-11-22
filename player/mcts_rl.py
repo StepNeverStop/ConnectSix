@@ -52,11 +52,15 @@ class MCTS_POLICY(RL_Policy):
             tf.summary.experimental.set_step(self.global_step)
             self.write_training_summaries(summaries)
             tf.summary.scalar('LEARNING_RATE/lr', self.lr)
-            self.recorder.writer.flush()
+            self.writer.flush()
 
     @tf.function
-    def train(s, p, v):
+    def train(self, s, p, v):
+        s = tf.cast(s, tf.float32)
+        p = tf.cast(p, tf.float32)
+        v = tf.cast(v, tf.float32)
         with tf.device(self.device):
+            s = tf.transpose(s, [0, 2, 3, 1])
             with tf.GradientTape() as tape:
                 action_probs, predict_v = self.net(s)
                 p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, action_probs), axis=-1))
@@ -75,7 +79,7 @@ class MCTS_POLICY(RL_Policy):
                 ['LOSS/loss', loss],
             ])
 
-    def store(self, data:list):
+    def store(self, data: list):
         for i in data:
             self.data.add(i)
 
@@ -92,7 +96,7 @@ class Node(object):
         self.n = 0  # 访问次数
         self.q = 0  # 平均Q值
         self.w = 0  # 总值
-        self.p = prior_prob # 由神经网络预测的先验概率
+        self.p = prior_prob  # 由神经网络预测的先验概率
 
     def expand(self, available_actions_prob):
         '''

@@ -36,7 +36,7 @@ def main(_argv):
         learning_rate=config['learning_rate'],
         buffer_size=config['buffer_size'],
         batch_size=config['batch_size'],
-        epochs = config['epochs']
+        epochs=config['epochs']
     )
     player = MCTSRL(
         pv_net=net,
@@ -51,7 +51,7 @@ def main(_argv):
         learning_rate=config['learning_rate'],
         buffer_size=config['buffer_size'],
         batch_size=config['batch_size'],
-        epochs = config['epochs']
+        epochs=config['epochs']
     )
     eval_player = MCTSRL(
         pv_net=net,
@@ -62,6 +62,7 @@ def main(_argv):
         name='eval_policy'
     )
     train_mcts_rl(env, player, eval_player, config)
+
 
 def augment_data(dim, data):
     '''
@@ -85,6 +86,7 @@ def augment_data(dim, data):
                                 winner))
     return extend_data
 
+
 def evaluate(num, ratio, env, player1, player2):
     '''
     参数：
@@ -99,7 +101,7 @@ def evaluate(num, ratio, env, player1, player2):
         env.reset()
         flag = env.play(player1, player2)
         if flag:
-            win_count+=1
+            win_count += 1
     eval_ratio = win_count / num
     if eval_ratio > ratio:
         logging.info('有进步')
@@ -108,9 +110,13 @@ def evaluate(num, ratio, env, player1, player2):
         logging.info('没进步')
         return False
 
+
 def train_mcts_rl(env, player, eval_player, kwargs: dict):
     game_batch = kwargs.get('game_batch', 1600)
     game_batch_size = kwargs.get('game_batch_size', 1)
+    save_frequent = kwargs.get('save_frequent', 10)
+    eval_num = kwargs.get('eval_num', 100)
+    ratio = kwargs.get('ratio', 0.55)
     for i in range(game_batch):
         for j in range(game_batch_size):
             data = env.self_play(player)
@@ -118,15 +124,17 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
             data = augment_data(env.dim, data)
             player.net.store(data)
         player.net.learn()
-        eval_player.net.restore(cp_dir='./model')
-        ret = evaluate(config['eval_num'], config['ratio'], env, player, eval_player)
+        logging.info(f'第{i}次学习模型')
+        if i % save_frequent == 0:
+            player.net.save_checkpoint(i)
+            logging.info(f'第{i}次保存模型')
+        input()
+        eval_player.net.restore(cp_dir='./models')
+        ret = evaluate(eval_num, ratio, env, player, eval_player)
         if ret:
             player.net.save_checkpoint(i)
             logging.info('模型已保存')
-        # if i % config['save_frequent'] == 0:
-        #     player.net.save_checkpoint(i)
-        #     logging.info(f'第{i}次保存模型')
-        
+
     pass
 
 

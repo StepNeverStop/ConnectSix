@@ -33,13 +33,13 @@ class RL_Policy(tf.keras.Model):
         tf.keras.backend.set_floatx('float32')
         self.global_step = tf.Variable(0, name="global_step", trainable=False, dtype=tf.int64)
         self.checkpoint = tf.train.Checkpoint(policy=self)
-        self.saver = tf.train.CheckpointManager(self.checkpoint, directory='./model', max_to_keep=5, checkpoint_name='rb')
+        self.saver = tf.train.CheckpointManager(self.checkpoint, directory='./models', max_to_keep=5, checkpoint_name='rb')
         self.writer = tf.summary.create_file_writer(time.strftime("logs/%Y%m%d%H%M%S", time.localtime()))
 
     def save_checkpoint(self, global_step):
         self.saver.save(checkpoint_number=global_step)
 
-    def restore(self, cp_dir='./model'):
+    def restore(self, cp_dir='./models'):
         if os.path.exists(os.path.join(cp_dir, 'checkpoint')):
             try:
                 self.checkpoint.restore(self.saver.latest_checkpoint)

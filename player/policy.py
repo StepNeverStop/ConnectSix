@@ -51,7 +51,7 @@ class MyPolicy(RL_Policy):
             tf.summary.experimental.set_step(self.global_step)
             self.write_training_summaries(summaries)
             tf.summary.scalar('LEARNING_RATE/lr', self.lr)
-            self.recorder.writer.flush()
+            self.writer.flush()
         except Exception as e:
             print(e)
             return
