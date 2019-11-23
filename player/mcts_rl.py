@@ -46,13 +46,14 @@ class MCTS_POLICY(RL_Policy):
         return available_actions_prob, value
 
     def learn(self):
-        s, p, v = self.data.sample()
-        for i in range(self.epochs):
-            summaries = self.train(s, p, v)
-            tf.summary.experimental.set_step(self.global_step)
-            self.write_training_summaries(summaries)
-            tf.summary.scalar('LEARNING_RATE/lr', self.lr)
-            self.writer.flush()
+        if self.data.is_lg_batch_size:
+            s, p, v = self.data.sample()
+            for i in range(self.epochs):
+                summaries = self.train(s, p, v)
+                tf.summary.experimental.set_step(self.global_step)
+                self.write_training_summaries(summaries)
+                tf.summary.scalar('LEARNING_RATE/lr', self.lr)
+                self.writer.flush()
 
     @tf.function
     def train(self, s, p, v):

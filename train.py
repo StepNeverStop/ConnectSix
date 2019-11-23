@@ -132,7 +132,7 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
         player.net.learn()
         logging.info(f'第{i}次学习模型')
 
-        if i % eval_interval == 0:
+        if i % eval_interval == 0 and i != 0:
             eval_player.net.restore(cp_dir='./models')
             ret = evaluate(eval_num, ratio, env, player, eval_player)
             if ret:
