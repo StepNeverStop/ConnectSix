@@ -73,12 +73,15 @@ class C6(Connect6):
 
     def self_play(self, player):
         self.reset()
-        states, probs, players = [], [], []
+        states, probs, players, steps = [], [], [], []
         while True:
+            print(f"--->  第{self.total_move:3d}步")
             x, y, move_probs = player.choose_action(self, return_prob=True, is_self_play=True)
+            current_player, move_step = self.get_current_player_info()
             states.append(self.get_current_state())
             probs.append(move_probs)
-            players.append(self.current_player)
+            players.append(current_player)
+            steps.append(move_step)
             # print(self.get_current_state())
             # print(move_probs)
             # print(self.current_player)
@@ -88,8 +91,10 @@ class C6(Connect6):
             if end:
                 winners_z = np.zeros(len(players))
                 if winner != -1:
-                    winners_z[np.array(players) == winner] = 1.0
-                    winners_z[np.array(players) != winner] = -1.0
+                    winners_z[np.logical_and(np.array(players) == winner, np.array(steps) == 0)] = -1.0
+                    winners_z[np.logical_and(np.array(players) == winner, np.array(steps) == 1)] = 1.0
+                    winners_z[np.logical_and(np.array(players) != winner, np.array(steps) == 0)] = 1.0
+                    winners_z[np.logical_and(np.array(players) != winner, np.array(steps) == 1)] = -1.0
                 player.reset_tree()
                 return zip(states, probs, winners_z)
 
@@ -97,15 +102,15 @@ class C6(Connect6):
         self.reset()
         while True:
             if self.current_player == 0:
-                x, y = player1.choose_action(self, return_prob=False, is_self_play=False)
+                x, y = player1.choose_action(self, return_prob=False, is_self_play=False, evaluate=True)
             else:
-                x, y = player2.choose_action(self, return_prob=False, is_self_play=False)
+                x, y = player2.choose_action(self, return_prob=False, is_self_play=False, evaluate=True)
+            self.step(x, y)
             end, winner = self.is_over()
             if end:
-                if winner == -1:
+                if winner == -1:    # 平局
                     return False
-                if winner == 0:
+                if winner == 0:     # player1胜
                     return True
-                if winner == 1:
+                if winner == 1:     # player2胜
                     return False
-        pass

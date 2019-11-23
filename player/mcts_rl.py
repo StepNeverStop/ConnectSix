@@ -188,8 +188,10 @@ class MCTS(object):
         else:
             self.root = Node(None, 1.0)
 
-    def get_action_probs(self, game):
+    def get_action_probs(self, game, evaluate=False):
         for i in range(self.playout_num):
+            if i % 50 == 0 and not evaluate:
+                print(f'----> 第{i:4d}次play out')
             game_copy = copy.deepcopy(game)
             self.playout(game_copy)
         action_visits = [(action_index, node.n)
@@ -206,13 +208,13 @@ class MCTSRL(Bot):
         self.net = pv_net
         self.mcts = MCTS(pv_net.get_probs_and_v, temp, c_puct, playout_num)
 
-    def choose_action(self, game, return_prob=False, is_self_play=True):
+    def choose_action(self, game, return_prob=False, is_self_play=True, evaluate=False):
         '''
         蒙特卡洛策略选动作
         '''
         move_probs = np.zeros(game.dim**2)
         if len(game.available_actions) > 0:
-            action_index, action_probs = self.mcts.get_action_probs(game)
+            action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
             move_probs[list(action_index)] = action_probs
             if is_self_play:
                 action = np.random.choice(action_index, p=action_probs)

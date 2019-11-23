@@ -5,9 +5,9 @@ c_puct: 5 # 控制playout时选动作Q与N的加权
 buffer_size: 100000 # 经验池大小
 batch_size: 10 # 取经验的batch大小
 epochs: 4
-playout_num: 10  # 在每步playout多少次
+playout_num: 50  # 在每步playout多少次
 game_batch: 200  # 共进行多少批次对局
 game_batch_size: 1  # 每批游戏中，有几盘游戏用于存储经验，一个batch游戏结束后，开始训练
 save_frequent: 10
-eval_num: 100
+eval_num: 10
 ratio: .55

@@ -8,6 +8,7 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 from game.connect6_mcts_rl import C6
 from player.mcts_rl import MCTS_POLICY, MCTSRL
+from utils.timer import timer
 
 flags.DEFINE_integer('size', 19, '棋盘尺寸大小')
 flags.DEFINE_float('learning_rate', 5e-4, '设置学习率')
@@ -87,6 +88,7 @@ def augment_data(dim, data):
     return extend_data
 
 
+@timer
 def evaluate(num, ratio, env, player1, player2):
     '''
     参数：
@@ -98,11 +100,14 @@ def evaluate(num, ratio, env, player1, player2):
     '''
     win_count = 0
     for i in range(num):
+        if i % 10 == 0:
+            logging.info(f'本轮第{i}次评估对局')
         env.reset()
         flag = env.play(player1, player2)
         if flag:
             win_count += 1
     eval_ratio = win_count / num
+    logging.info(f'本轮测试评估的胜率为{eval_ratio}')
     if eval_ratio > ratio:
         logging.info('有进步')
         return True
@@ -117,6 +122,7 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
     save_frequent = kwargs.get('save_frequent', 10)
     eval_num = kwargs.get('eval_num', 100)
     ratio = kwargs.get('ratio', 0.55)
+    player.net.save_checkpoint(0)
     for i in range(game_batch):
         for j in range(game_batch_size):
             data = env.self_play(player)
@@ -125,17 +131,14 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
             player.net.store(data)
         player.net.learn()
         logging.info(f'第{i}次学习模型')
-        if i % save_frequent == 0:
-            player.net.save_checkpoint(i)
-            logging.info(f'第{i}次保存模型')
-        input()
+        # if i % save_frequent == 0:
+        #     player.net.save_checkpoint(i)
+        #     logging.info(f'第{i}次保存模型')
         eval_player.net.restore(cp_dir='./models')
         ret = evaluate(eval_num, ratio, env, player, eval_player)
         if ret:
             player.net.save_checkpoint(i)
-            logging.info('模型已保存')
-
-    pass
+            logging.info(f'模型已保存, 第{i}个训练批次')
 
 
 if __name__ == '__main__':
