@@ -190,8 +190,8 @@ class MCTS(object):
 
     def get_action_probs(self, game, evaluate=False):
         for i in range(self.playout_num):
-            if i % 50 == 0 and not evaluate:
-                print(f'----> 第{i:4d}次play out')
+            # if i % 50 == 0 and not evaluate:
+            #     print(f'----> 第{i:4d}次play out')
             game_copy = copy.deepcopy(game)
             self.playout(game_copy)
         action_visits = [(action_index, node.n)

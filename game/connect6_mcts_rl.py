@@ -75,7 +75,7 @@ class C6(Connect6):
         self.reset()
         states, probs, players, steps = [], [], [], []
         while True:
-            print(f"--->  第{self.total_move:3d}步")
+            # print(f"--->  第{self.total_move:3d}步")
             x, y, move_probs = player.choose_action(self, return_prob=True, is_self_play=True)
             current_player, move_step = self.get_current_player_info()
             states.append(self.get_current_state())
@@ -89,6 +89,7 @@ class C6(Connect6):
             self.step(x, y)
             end, winner = self.is_over()
             if end:
+                print(f'本次self play共{self.total_move}步.')
                 winners_z = np.zeros(len(players))
                 if winner != -1:
                     winners_z[np.logical_and(np.array(players) == winner, np.array(steps) == 0)] = -1.0
