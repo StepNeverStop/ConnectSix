@@ -1,7 +1,5 @@
 # coding: utf-8
 # athor: Keavnn
-import os
-import yaml
 import numpy as np
 from pprint import pprint
 from absl import app, flags, logging
@@ -9,23 +7,14 @@ from absl.flags import FLAGS
 from game.connect6_mcts_rl import C6
 from player.mcts_rl import MCTS_POLICY, MCTSRL
 from utils.timer import timer
+from utils.sth import load_config
 
 flags.DEFINE_integer('size', 19, '棋盘尺寸大小')
 flags.DEFINE_float('learning_rate', 5e-4, '设置学习率')
 
 
-def load_config(filename):
-    if os.path.exists(filename):
-        f = open(filename, 'r', encoding='utf-8')
-    else:
-        raise Exception('cannot find this config.')
-    x = yaml.safe_load(f.read())
-    f.close()
-    return x
-
-
 def main(_argv):
-    config = load_config('./config.yaml')
+    config = load_config('./train_config.yaml')
     config['dim'] = FLAGS.size
     config['learning_rate'] = FLAGS.learning_rate
     pprint(config)
@@ -108,10 +97,8 @@ def evaluate(num, ratio, env, player1, player2):
     eval_ratio = win_count / num
     logging.info(f'本轮测试评估的胜率为{eval_ratio}')
     if eval_ratio > ratio:
-        logging.info('有进步')
         return True
     else:
-        logging.info('没进步')
         return False
 
 
@@ -123,21 +110,24 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
     ratio = kwargs.get('ratio', 0.55)
     eval_interval = kwargs.get('eval_interval', 20)
     player.net.save_checkpoint(0)
+
     for i in range(game_batch):
+        logging.info(f'-> 第{i}批次训练')
         for j in range(game_batch_size):
+            logging.info(f'--> 第{i}批次第{j}次训练')
             data = env.self_play(player)
             data = list(data)[:]
             data = augment_data(env.dim, data)
             player.net.store(data)
         player.net.learn()
-        logging.info(f'第{i}次学习模型')
+        logging.info(f'模型第{i}批次已学习')
 
         if i % eval_interval == 0 and i != 0:
             eval_player.net.restore(cp_dir='./models')
             ret = evaluate(eval_num, ratio, env, player, eval_player)
             if ret:
                 player.net.save_checkpoint(i)
-                logging.info(f'模型已保存, 第{i}个训练批次')
+                logging.info(f'评估结束, 优化模型已保存')
             continue
 
         if i % save_frequent == 0:

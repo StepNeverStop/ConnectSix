@@ -6,6 +6,15 @@ class C6(Connect6):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.box_size = int(kwargs.get('box_size', self.dim))
+        assert self.box_size <= self.dim, '框大小不能大于棋盘大小'
+        assert self.box_size % 2 == 1
+        assert self.dim % 2 == 1
+        self.cor = False    # 是否校正
+        if self.box_size != self.dim:
+            self.cor = True
+            self.minb = (self.box_size - 1) / 2
+            self.maxb = self.dim - (self.box_size + 1) / 2
 
     def reset(self):
         super().reset()
@@ -22,11 +31,42 @@ class C6(Connect6):
         assert self.move_step == 1
         self.total_move += 1
         self.moves[self.current_player] += 1
+        self.last_move[self.move_step] = [x, y]
         self.move_step += 1
         if self.move_step == 2:
             self.round += 1
             self.move_step = 0
             self.current_player = (self.current_player + 1) % 2
+    
+    @property
+    def get_available_actions(self):
+        if self.cor == True:
+            a = []
+            x, y = self.last_move[self.move_step]
+            x, y = self.get_box_range(x, y)
+            for i in range(self.box_size):
+                x += i
+                for j in range(self.box_size):
+                    y += j
+                    if self.board[y][x] != 2:
+                        a.append(x + y * self.dim)
+            return a
+        else:
+            return self.available_actions
+    
+    def clip_coordinate(self, x):
+        if x < self.minb:
+            x = self.minb
+        elif x > self.maxb:
+            x = self.maxb
+        return x
+
+    def get_box_range(self, x, y):
+        x = self.clip_coordinate(x)
+        y = self.clip_coordinate(y)
+        ltx = x - self.minb # 左上角
+        lty = y - self.minb
+        return ltx, lty
 
     def get_state(self):
         """
@@ -65,11 +105,15 @@ class C6(Connect6):
             square_state[1][move_oppo % self.dim,   # 对手之前落过子的点
                             move_oppo // self.dim] = 1.0
 
-            square_state[2][self.last_move[0],      # 最新的落子点
-                            self.last_move[1]] = 1.0
+            square_state[2][self.last_move[:][0], self.last_move[:][1]] = 1.0      # 最新的落子点
         if self.current_player == 0:
             square_state[3][:, :] = 1.0
-        return square_state
+        if self.cor == True:
+            x, y = self.last_move[self.move_step]
+            ltx, lty = self.get_box_range(x, y)
+            return square_state[..., ltx:ltx+self.box_size, lty:lty+self.box_size]
+        else:
+            return square_state
 
     def self_play(self, player):
         self.reset()
@@ -83,10 +127,7 @@ class C6(Connect6):
             probs.append(move_probs)
             players.append(current_player)
             steps.append(move_step)
-            # print(self.get_current_state())
-            # print(move_probs)
-            # print(self.current_player)
-            # input()
+
             self.step(x, y)
             end, winner = self.is_over()
             if end:

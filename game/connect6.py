@@ -38,7 +38,7 @@ class Connect6(Game):
         """
         重置环境，返回状态obs
         """
-        self.last_move = np.zeros(2, dtype=np.int32)
+        self.last_move = np.zeros((2, 2), dtype=np.int32)
         self.total_move = 0
         self.round = 1
         self.move_step = 1
@@ -47,7 +47,7 @@ class Connect6(Game):
         self.moves = [0, 0]
         self.available_actions = list(range(pow(self.dim, 2)))
         pass    # 此处可以根据个人需求重写返回信息
-
+    
     def get_current_player_info(self):
         return self.current_player, self.move_step
 
@@ -60,8 +60,8 @@ class Connect6(Game):
         """
         self.available_actions.remove(x + y * self.dim)
         self.board[y][x] = self.current_player
-        self.last_move[0], self.last_move[1] = x, y
         self.total_move += 1
+        self.last_move[self.move_step] = [x, y]
         self.moves[self.current_player] += 1
         self.move_step += 1
         if self.move_step == 2:
@@ -93,7 +93,7 @@ class Connect6(Game):
         判断游戏是否已经结束
         """
         board = self.board
-        x, y = self.last_move
+        x, y = self.last_move[(self.move_step+1) % 2]
         for _dir, dir_func in self.directions.items():
             nx, ny = dir_func(x, y)
             if self.is_outta_range(nx, ny):

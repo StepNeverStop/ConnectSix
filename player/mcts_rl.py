@@ -2,6 +2,7 @@
 import numpy as np
 import copy
 import tensorflow as tf
+from absl import logging
 from .bot_base import RL_Policy, Bot
 from utils.replay_buffer import ExperienceReplay
 from utils.nn.nets import PV
@@ -16,10 +17,10 @@ def softmax(x):
 class MCTS_POLICY(RL_Policy):
     def __init__(self,
                  state_dim,
-                 learning_rate,
-                 buffer_size,
-                 batch_size,
-                 epochs,
+                 learning_rate=5.0e-4,
+                 buffer_size=10000,
+                 batch_size=128,
+                 epochs=2,
                  name='wjs_policy'
                  ):
         super().__init__()
@@ -39,10 +40,10 @@ class MCTS_POLICY(RL_Policy):
         '''
         输入状态，获得相应可选动作的概率和当前节点的预期价值
         '''
-        state = game.get_current_state().reshape(-1, 4, game.dim, game.dim)
+        state = game.get_current_state().reshape(-1, 4, game.box_size, game.box_size)
         log_actions_prob, value = self._get_probs_and_v(state)
         actions_prob = np.exp(log_actions_prob)
-        available_actions_prob = zip(game.available_actions, actions_prob[0][game.available_actions])
+        available_actions_prob = zip(game.get_available_actions, actions_prob[0][game.get_available_actions])
         return available_actions_prob, value
 
     def learn(self):
@@ -50,6 +51,8 @@ class MCTS_POLICY(RL_Policy):
             s, p, v = self.data.sample()
             for i in range(self.epochs):
                 summaries = self.train(s, p, v)
+                loss = summaries['LOSS/loss']
+                logging.info(f'epoch: {i}, loss: {loss}')
                 tf.summary.experimental.set_step(self.global_step)
                 self.write_training_summaries(summaries)
                 tf.summary.scalar('LEARNING_RATE/lr', self.lr)
@@ -213,7 +216,7 @@ class MCTSRL(Bot):
         '''
         蒙特卡洛策略选动作
         '''
-        move_probs = np.zeros(game.dim**2)
+        move_probs = np.zeros(game.box_size**2)
         if len(game.available_actions) > 0:
             action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
             move_probs[list(action_index)] = action_probs

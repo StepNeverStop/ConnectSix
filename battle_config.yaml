@@ -1,0 +1,6 @@
+board_size: 37
+box_size: 19
+model_path: ./models
+temp: 1.0 # 温控系数，控制输出动作概率进行softmax的加权 temp越小，概率分布的熵越小，也就是随机程度越小
+c_puct: 5 # 控制playout时选动作Q与N的加权
+playout_num: 1600  # 在每步playout多少次
