@@ -100,12 +100,12 @@ def evaluate(num, ratio, env, player1, player2):
     '''
     win_count = 0
     for i in range(num):
-        if i % 10 == 0:
-            logging.info(f'本轮第{i}次评估对局')
         env.reset()
         flag = env.play(player1, player2)
         if flag:
             win_count += 1
+        if i % 10 == 0:
+            logging.info(f'本轮第{i}次评估对局，结果为{flag}')
     eval_ratio = win_count / num
     logging.info(f'本轮测试评估的胜率为{eval_ratio}')
     if eval_ratio > ratio:
