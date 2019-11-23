@@ -18,6 +18,16 @@ class C6(Connect6):
         self.states[x + y * self.dim] = self.current_player
         super().step(x, y)
 
+    def step_again(self):
+        assert self.move_step == 1
+        self.total_move += 1
+        self.moves[self.current_player] += 1
+        self.move_step += 1
+        if self.move_step == 2:
+            self.round += 1
+            self.move_step = 0
+            self.current_player = (self.current_player + 1) % 2
+
     def get_state(self):
         """
         用于在执行一个step步后返回新的状态，可以自行定义修改，也可以在AI接收到状态后自行解析成自己希望的输入状态
@@ -50,12 +60,12 @@ class C6(Connect6):
             moves, players = np.array(list(zip(*self.states.items())))
             move_curr = moves[players == self.current_player]
             move_oppo = moves[players != self.current_player]
-            square_state[0][move_curr % self.dim,
+            square_state[0][move_curr % self.dim,   # 当前选手之前落过子的点
                             move_curr // self.dim] = 1.0
-            square_state[1][move_oppo % self.dim,
+            square_state[1][move_oppo % self.dim,   # 对手之前落过子的点
                             move_oppo // self.dim] = 1.0
 
-            square_state[2][self.last_move[0],
+            square_state[2][self.last_move[0],      # 最新的落子点
                             self.last_move[1]] = 1.0
         if self.current_player == 0:
             square_state[3][:, :] = 1.0
@@ -81,7 +91,7 @@ class C6(Connect6):
                     winners_z[np.array(players) == winner] = 1.0
                     winners_z[np.array(players) != winner] = -1.0
                 player.reset_tree()
-                return zip(states, probs, players)
+                return zip(states, probs, winners_z)
 
     def play(self, player1, player2):
         self.reset()

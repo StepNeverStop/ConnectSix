@@ -62,8 +62,8 @@ class MCTS_POLICY(RL_Policy):
         with tf.device(self.device):
             s = tf.transpose(s, [0, 2, 3, 1])
             with tf.GradientTape() as tape:
-                action_probs, predict_v = self.net(s)
-                p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, action_probs), axis=-1))
+                log_action_probs, predict_v = self.net(s)
+                p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, log_action_probs), axis=-1))
                 v_loss = tf.reduce_mean((v - predict_v) ** 2)
                 l2_penalty = 1e-4 * tf.add_n(
                     [tf.nn.l2_loss(v) for v in self.net.trainable_variables if 'bias' not in v.name.lower()])
@@ -176,9 +176,9 @@ class MCTS(object):
             if winner == -1:
                 value = 0
             elif (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
-                value = 1
+                value = 1.0
             else:
-                value = -1
+                value = -1.0
         node.update_recursive(value, player_step)
 
     def node_move(self, action=-1):
@@ -218,7 +218,7 @@ class MCTSRL(Bot):
                 action = np.random.choice(action_index, p=action_probs)
                 self.mcts.node_move(action)
             else:
-                action = np.random.choice(action_index, p=action_probs)
+                action = action_index[np.argmax(action_probs)]
                 self.mcts.node_move(-1)
             x, y = action % game.dim, action // game.dim
             if return_prob:
