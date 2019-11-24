@@ -10,6 +10,7 @@ from utils.timer import timer
 from utils.sth import load_config
 
 flags.DEFINE_integer('size', 19, '棋盘尺寸大小')
+flags.DEFINE_boolean('load', False, '是否载入模型')
 flags.DEFINE_float('learning_rate', 5e-4, '设置学习率')
 
 
@@ -17,6 +18,7 @@ def main(_argv):
     config = load_config('./train_config.yaml')
     config['dim'] = FLAGS.size
     config['learning_rate'] = FLAGS.learning_rate
+    cp_dir = './models' + str(FLAGS.size)
     pprint(config)
     env = C6(
         dim=config['dim']
@@ -26,8 +28,11 @@ def main(_argv):
         learning_rate=config['learning_rate'],
         buffer_size=config['buffer_size'],
         batch_size=config['batch_size'],
-        epochs=config['epochs']
+        epochs=config['epochs'],
+        cp_dir=cp_dir
     )
+    if FLAGS.load:
+        net.restore(cp_dir=cp_dir)
     player = MCTSRL(
         pv_net=net,
         temp=config['temp'],
@@ -133,7 +138,6 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
         if i % save_frequent == 0:
             player.net.save_checkpoint(i)
             logging.info(f'第{i}次保存模型')
-
 
 
 if __name__ == '__main__':

@@ -6,7 +6,8 @@ from absl import logging
 from .bot_base import RL_Policy, Bot
 from utils.replay_buffer import ExperienceReplay
 from utils.nn.nets import PV
-
+import random
+from absl import logging
 
 def softmax(x):
     probs = np.exp(x - np.max(x))
@@ -21,9 +22,10 @@ class MCTS_POLICY(RL_Policy):
                  buffer_size=10000,
                  batch_size=128,
                  epochs=2,
-                 name='wjs_policy'
+                 name='wjs_policy',
+                 cp_dir='./models'
                  ):
-        super().__init__()
+        super().__init__(cp_dir=cp_dir)
         self.lr = learning_rate
         self.epochs = epochs
         self.data = ExperienceReplay(batch_size=batch_size, capacity=buffer_size)
@@ -194,8 +196,8 @@ class MCTS(object):
 
     def get_action_probs(self, game, evaluate=False):
         for i in range(self.playout_num):
-            # if i % 50 == 0 and not evaluate:
-            #     print(f'----> 第{i:4d}次play out')
+            if i % 50 == 0 and not evaluate:
+                logging.info(f'----> 第{i:4d}次play out')
             game_copy = copy.deepcopy(game)
             self.playout(game_copy)
         action_visits = [(action_index, node.n)
@@ -218,21 +220,27 @@ class MCTSRL(Bot):
         '''
         move_probs = np.zeros(game.box_size**2)
         if len(game.available_actions) > 0:
-            action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
-            move_probs[list(action_index)] = action_probs
-            if is_self_play:
-                action = np.random.choice(action_index, p=action_probs)
-                self.mcts.node_move(action)
+            if len(game.get_available_actions) > 0:
+                action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
+                move_probs[list(action_index)] = action_probs
+                if is_self_play:
+                    action = np.random.choice(action_index, p=action_probs)
+                    self.mcts.node_move(action)
+                else:
+                    action = action_index[np.argmax(action_probs)]
+                    self.mcts.node_move(-1)
+                x, y = action % game.dim, action // game.dim
+                if return_prob:
+                    return x, y, move_probs
+                else:
+                    return x, y
             else:
-                action = action_index[np.argmax(action_probs)]
-                self.mcts.node_move(-1)
-            x, y = action % game.dim, action // game.dim
-            if return_prob:
-                return x, y, move_probs
-            else:
+                import random   # 只有在用19*19的策略推断37*37的棋盘时会出现这种情况
+                action = random.sample(game,available_actions, 1)[0]
+                x, y = action % game.dim, action // game.dim
                 return x, y
         else:
-            print('棋盘已经满了，无法落子')
+            logging.info('棋盘已经满了，无法落子')
 
     def reset_tree(self):
         self.mcts.node_move(action=-1)

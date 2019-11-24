@@ -24,6 +24,7 @@ class Bot(ABC):
 class RL_Policy(tf.keras.Model):
     def __init__(self, **kwargs):
         super().__init__()
+        cp_dir = kwargs.get('cp_dir', './models')
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         if len(physical_devices) > 0:
             self.device = "/gpu:0"
@@ -33,7 +34,7 @@ class RL_Policy(tf.keras.Model):
         tf.keras.backend.set_floatx('float32')
         self.global_step = tf.Variable(0, name="global_step", trainable=False, dtype=tf.int64)
         self.checkpoint = tf.train.Checkpoint(policy=self)
-        self.saver = tf.train.CheckpointManager(self.checkpoint, directory='./models', max_to_keep=5, checkpoint_name='rb')
+        self.saver = tf.train.CheckpointManager(self.checkpoint, directory=cp_dir, max_to_keep=5, checkpoint_name='rb')
         self.writer = tf.summary.create_file_writer(time.strftime("logs/%Y%m%d%H%M%S", time.localtime()))
 
     def save_checkpoint(self, global_step):
