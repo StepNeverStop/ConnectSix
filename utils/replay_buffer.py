@@ -1,5 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
+import json
 
 # [s, visual_s, a, r, s_, visual_s_, done] must be this format.
 
@@ -30,19 +31,16 @@ class ExperienceReplay(ReplayBuffer):
         self._buffer = np.empty(capacity, dtype=object)
 
     def add(self, data):
-        '''
-        [s, a, r],[s, a, r] and store every item in it.
-        '''
         self._store_op(data)
 
     def _store_op(self, data):
+        json_str = json.dumps([d.tolist() for d in data])
+        with open('replay.data', 'a') as f:
+            f.write(json_str + '\n')
         self._buffer[self._data_pointer] = data
         self.update_rb_after_add()
 
     def sample(self):
-        '''
-        change [[s, a, r],[s, a, r]] to [[s, s],[a, a],[r, r]]
-        '''
         n_sample = self.batch_size if self.is_lg_batch_size else self._size
         t = np.random.choice(self._buffer[:self._size], size=n_sample, replace=False)
         return [np.array(e) for e in zip(*t)]
@@ -56,6 +54,13 @@ class ExperienceReplay(ReplayBuffer):
             self._data_pointer = 0
         if self._size < self.capacity:
             self._size += 1
+    
+    def load_replay(self):
+        with open('replay.data') as f:
+            for json_str in f:
+                data = json.loads(json_str)
+                data = [np.array(d) for d in data]
+                self.add(data)
 
     @property
     def is_full(self):
