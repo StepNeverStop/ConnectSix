@@ -9,6 +9,7 @@ from utils.nn.nets import PV
 import random
 from absl import logging
 
+
 def softmax(x):
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
@@ -26,6 +27,7 @@ class MCTS_POLICY(RL_Policy):
                  cp_dir='./models'
                  ):
         super().__init__(cp_dir=cp_dir)
+        self.state_dim = state_dim
         self.lr = learning_rate
         self.epochs = epochs
         self.data = ExperienceReplay(batch_size=batch_size, capacity=buffer_size)
@@ -88,6 +90,19 @@ class MCTS_POLICY(RL_Policy):
     def store(self, data: list):
         for i in data:
             self.data.add(i)
+
+    def store_in_file(self, data, file_name='data'):
+        json_str = json.dumps([d.tolist() for d in data])  # 将一条经验转换为list
+        with open(f'{file_name}{self.state_dim}.data', 'a') as f:
+            f.write(json_str + '\n')  # 保存一条经验
+
+    def _restore_from_file(self, data, file_name='data'):
+        with open(f'{file_name}{self.state_dim}.data') as f:
+            for json_str in f:  # 每行为一条经验
+                if json_str != '':
+                    data = json.loads(json_str)
+                    data = [np.array(d) for d in data]  # 一条经验
+                    self.data.add(data)  # 恢复一条经验
 
 
 class Node(object):
@@ -236,7 +251,7 @@ class MCTSRL(Bot):
                     return x, y
             else:
                 import random   # 只有在用19*19的策略推断37*37的棋盘时会出现这种情况
-                action = random.sample(game,available_actions, 1)[0]
+                action = random.sample(game, available_actions, 1)[0]
                 x, y = action % game.dim, action // game.dim
                 return x, y
         else:

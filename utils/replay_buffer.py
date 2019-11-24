@@ -34,9 +34,6 @@ class ExperienceReplay(ReplayBuffer):
         self._store_op(data)
 
     def _store_op(self, data):
-        json_str = json.dumps([d.tolist() for d in data])
-        with open('replay.data', 'a') as f:
-            f.write(json_str + '\n')
         self._buffer[self._data_pointer] = data
         self.update_rb_after_add()
 
@@ -54,13 +51,6 @@ class ExperienceReplay(ReplayBuffer):
             self._data_pointer = 0
         if self._size < self.capacity:
             self._size += 1
-    
-    def load_replay(self):
-        with open('replay.data') as f:
-            for json_str in f:
-                data = json.loads(json_str)
-                data = [np.array(d) for d in data]
-                self.add(data)
 
     @property
     def is_full(self):
