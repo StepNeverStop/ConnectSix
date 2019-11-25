@@ -237,6 +237,7 @@ class MCTSRL(Bot):
         move_probs = np.zeros(game.box_size**2)
         if len(game.available_actions) > 0:
             a, b = game.get_available_actions()
+            c = game.available_actions
             if len(a) > 0:
                 action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
 
