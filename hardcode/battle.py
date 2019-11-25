@@ -8,7 +8,9 @@ from c6 import Connect6
 from partial_env import PartialC6
 
 
+
 def main(_argv):
+    board_size = FLAGS.board_size
     env = Connect6(dim=19)
     player1 = HumanPlayer()
     player2 = CounterPlayer()
