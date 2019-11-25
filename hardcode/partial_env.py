@@ -1,5 +1,5 @@
 import numpy as np
-
+import random
 
 def reverse_of(dir_func):
     '''
@@ -10,8 +10,9 @@ def reverse_of(dir_func):
 
 
 class PartialC6(object):
-    def __init__(self, env, dim=11, index=0):
-        self.dim = dim               # 棋盘格维度
+    def __init__(self, env, index=0):
+        self.env=env
+        self.dim = env.box_size               # 棋盘格维度
         self.directions = {
             'up': lambda x, y: (x, y + 1),
             'right': lambda x, y: (x + 1, y),
@@ -22,7 +23,7 @@ class PartialC6(object):
             'left down': lambda x, y: (x - 1, y - 1),
             'down': lambda x, y: (x, y - 1),
         }
-        self.board, self.x, self.y, self.available_actions = env.get_partial_board(box_size=self.dim, index=index)
+        self.board, self.x, self.y, self.available_actions = env.get_partial_board(index=index)
         self.current_player = env.current_player
         self.oppo_player = (env.current_player + 1) % 2
         self.actions = [None] * 8
@@ -66,11 +67,22 @@ class PartialC6(object):
 
     def act(self):
         self.get_8actions()
-        nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
-        for key, value in nums.items():
-            if self.actions[key] is not None:
-                return self.actions[key]
+        self.nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
+        for key, value in self.nums.items():
+            _a = self.actions[key]
+            self.actions[key] = None
+            if _a is not None:
+                _b = _a[0] + _a[1] * self.dim
+                return self.available_actions[_b]
 
+    def get_next(self):
+        for key, value in self.nums.items():
+            _a = self.actions[key]
+            self.actions[key] = None
+            if _a is not None:
+                _b = _a[0] + _a[1] * self.dim
+                return self.available_actions[_b]
+        return random.sample(env.available_actions, 1)[0]
     '''
     以下为游戏规则逻辑，不需要修改
     '''

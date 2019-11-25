@@ -30,6 +30,7 @@ class C6(Connect6):
 
     def step_again(self):
         assert self.move_step == 1
+        x, y = self.last_move[0]
         self.total_move += 1
         self.moves[self.current_player] += 1
         self.last_move[self.move_step] = [x, y]

@@ -28,8 +28,9 @@ class Connect6(object):
         首先在横、竖、斜方向存在相连六个及以上同色棋子的选手获胜
     '''
 
-    def __init__(self, **kwargs):
-        self.dim = int(kwargs.get('dim', 19))               # 棋盘格维度
+    def __init__(self, dim=19, box_size=11):
+        self.dim = dim              # 棋盘格维度
+        self.box_size = box_size
         self.players_char = ['●', '○']                      # 用于显示黑棋、白棋的样式
         self.player_order = ['黑棋', '白棋']                 # 定义下棋顺序
         self.last_move_char = ['■', '□']                    # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
@@ -46,49 +47,51 @@ class Connect6(object):
         }
 
         self.board = np.full([self.dim, self.dim], 2)       # 用于初始化棋盘
-        self.last_move = np.zeros((2, 2), dtype=np.int32)   # 用于记录最新的落子信息
+        self.last_move = np.full((2, 2), -1, dtype=np.int32)   # 用于记录最新的落子信息
         self.total_move = 0                                 # 用于统计该盘棋过走了多少步
         self.round = 1                                      # 用于统计目前进行到了第几回合，因为有些棋类会出现一回合进行多步操作的情况，所以可能会存在total_move与round不等的情况
         self.current_player = 0                             # 用于记录目前落子的选手是黑子还是白子
         self.moves = [0, 0]                                 # 用于分别统计两位选手的步数
         self.available_actions = list(range(pow(self.dim, 2)))
 
-    def get_partial_board(self, box_size=11, index=0):
+    def get_partial_board(self, index=0):
         x, y = self.last_move[index]
-        mid = int((box_size - 1) / 2)
-        minc = int((box_size - 1) / 2)
-        maxc = int(self.dim - (box_size + 1) / 2)
-        if minc < x < maxc:
+        if x == -1 or y == -1:
+            x, y = self.last_move[(index+1)%2]
+        mid = int((self.box_size - 1) / 2)
+        minc = int((self.box_size - 1) / 2)
+        maxc = int(self.dim - (self.box_size + 1) / 2)
+        if minc <= x <= maxc:
             _x = mid
         elif x < minc:
             _x = x
             x = minc
         elif x > maxc:
-            _x = x - self.dim + box_size
+            _x = x - self.dim + self.box_size
             x = maxc
 
-        if minc < y < maxc:
+        if minc <= y <= maxc:
             _y = mid
         elif y < minc:
             _y = y
             y = minc
         elif y > maxc:
-            _y = y - self.dim + box_size
+            _y = y - self.dim + self.box_size
             y = maxc
         ltx, lty = x - minc, y - minc
-        board = self.board[..., ltx:ltx + box_size, lty:lty + box_size]
+        board = self.board[..., lty:lty + self.box_size, ltx:ltx + self.box_size]
         ad = {}
-        for i in range(box_size):   # x
-            for j in range(box_size):   # y
-                if board[lty + j][ltx + i] == 2:
-                    ad[i + j * box_size] = (ltx + i) + (lty + j) * self.dim
+        for i in range(self.box_size):   # x
+            for j in range(self.box_size):   # y
+                if self.board[lty + j][ltx + i] == 2:
+                    ad[i + j * self.box_size] = (ltx + i) + (lty + j) * self.dim
         return board, _x, _y, ad
 
     def reset(self):
         """
         重置环境，返回状态obs
         """
-        self.last_move = np.zeros((2, 2), dtype=np.int32)
+        self.last_move = np.full((2, 2), -1, dtype=np.int32)
         self.total_move = 0
         self.round = 1
         self.move_step = 1
@@ -148,6 +151,7 @@ class Connect6(object):
     def step_again(self):
         if self.move_step != 1:
             return
+        x, y = self.last_move[0]
         self.total_move += 1
         self.moves[self.current_player] += 1
         self.last_move[self.move_step] = [x, y]
