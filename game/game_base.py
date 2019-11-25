@@ -23,7 +23,7 @@ class Game(ABC):
         self.players_char = ['●', '○']                      # 用于显示黑棋、白棋的样式
         self.player_order = ['黑棋', '白棋']                 # 定义下棋顺序
         self.board = np.full([self.dim, self.dim], -1)      # 用于初始化棋盘
-        self.last_move = np.zeros(2, dtype=np.int32)        # 用于记录最新的落子信息
+        # self.last_move = np.zeros(2, dtype=np.int32)        # 用于记录最新的落子信息
         self.last_move_char = ['■', '□']                    # 用于显示黑棋、白棋刚刚落子的样式，为了引起注意
         self.total_move = 0                                 # 用于统计该盘棋过走了多少步
         self.round = 1                                      # 用于统计目前进行到了第几回合，因为有些棋类会出现一回合进行多步操作的情况，所以可能会存在total_move与round不等的情况
@@ -56,7 +56,7 @@ class Game(ABC):
             for x in range(self.dim):   # 显示棋子样式
                 stone = self.board[y][x]
                 if stone != 2:
-                    if x == self.last_move[0] and y == self.last_move[1]:
+                    if x == self.last_move[(self.move_step+1) % 2][0] and y == self.last_move[(self.move_step+1) % 2][1]:
                         print(' ' + self.last_move_char[self.board[y][x]] + ' ', end='')
                     else:
                         print(' ' + self.players_char[self.board[y][x]] + ' ', end='')

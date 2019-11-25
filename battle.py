@@ -13,10 +13,12 @@ flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 19, 'box的大小')
 flags.DEFINE_string('model_path', './models', '指定要加载的模型文件夹')
 
+
 def main(_argv):
     config = load_config('./battle_config.yaml')
     board_size = FLAGS.board_size
     box_size = FLAGS.box_size
+    model_path = FLAGS.model_path + '/models' + str(FLAGS.box_size)
     pprint(config)
     env = C6(
         dim=board_size,
@@ -25,7 +27,7 @@ def main(_argv):
     net = MCTS_POLICY(
         state_dim=[box_size, box_size, 4]
     )
-    net.restore(FLAGS.model_path)
+    net.restore(model_path)
     player = MCTSRL(
         pv_net=net,
         temp=config['temp'],
@@ -34,8 +36,9 @@ def main(_argv):
         dim=box_size,
         name='mcts_rl_policy'
     )
-    player2 = TestPlayer()
+    player2 = HumanPlayer(board_size)
     battle_loop(env, player, player2, is_black=True)
+
 
 def battle_loop(env, player1, player2=None, is_black=True):
     if player2 is None:
@@ -46,7 +49,9 @@ def battle_loop(env, player1, player2=None, is_black=True):
     else:
         players = [player2, player1]
     while True:
-        x, y = player[env.current_player].choose_action()
+        x, y = players[env.current_player].choose_action(env, return_prob=False, is_self_play=False)
+        print(x, y)
+        input()
         if isinstance(x, list):
             env.step(x[0], y[0])
             if len(x) == 1:
@@ -55,12 +60,33 @@ def battle_loop(env, player1, player2=None, is_black=True):
                 env.step(x[-1], y[-1])
         else:
             env.step(x, y)
+        env.render()
         end, winner = env.is_over()
         if end:
             break
 
+
+class HumanPlayer:
+    def __init__(self, board_size):
+        self.board_size = board_size
+
+    def choose_action(self, *args, **kwargs):
+        x, y = [], []
+        print('请输入第一个落子点的坐标: ')
+        info = input()
+        _x, _y = info.split('-')
+        x.append(int(_x))
+        y.append(int(_y))
+        print('请输入第二个落子点的坐标: ')
+        info = input()
+        _x, _y = info.split('-')
+        x.append(int(_x))
+        y.append(int(_y))
+        return x, y
+
+
 class TestPlayer:
-    def __init__(self,*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass
 
     def choose_action(*args, **kwargs):

@@ -47,7 +47,8 @@ class MCTS_POLICY(RL_Policy):
         state = game.get_current_state().reshape(-1, 4, game.box_size, game.box_size)
         log_actions_prob, value = self._get_probs_and_v(state)
         actions_prob = np.exp(log_actions_prob)
-        available_actions_prob = zip(game.get_available_actions, actions_prob[0][game.get_available_actions])
+        a, b = game.get_available_actions()
+        available_actions_prob = zip(a, actions_prob[0][b])
         return available_actions_prob, value
 
     def learn(self):
@@ -235,9 +236,18 @@ class MCTSRL(Bot):
         '''
         move_probs = np.zeros(game.box_size**2)
         if len(game.available_actions) > 0:
-            if len(game.get_available_actions) > 0:
+            a, b = game.get_available_actions()
+            if len(a) > 0:
                 action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
-                move_probs[list(action_index)] = action_probs
+
+                if game.cor == True:
+                    c = []
+                    for index, v in enumerate(a):
+                        for i in list(action_index):
+                            if v == i:
+                                c.append(b[index])
+
+                move_probs[c] = action_probs
                 if is_self_play:
                     action = np.random.choice(action_index, p=action_probs)
                     self.mcts.node_move(action)
@@ -251,7 +261,7 @@ class MCTSRL(Bot):
                     return x, y
             else:
                 import random   # 只有在用19*19的策略推断37*37的棋盘时会出现这种情况
-                action = random.sample(game, available_actions, 1)[0]
+                action = random.sample(game.available_actions, 1)[0]
                 x, y = action % game.dim, action // game.dim
                 return x, y
         else:

@@ -14,8 +14,8 @@ class C6(Connect6):
         self.cor = False    # 是否校正
         if self.box_size != self.dim:
             self.cor = True
-            self.minb = (self.box_size - 1) / 2
-            self.maxb = self.dim - (self.box_size + 1) / 2
+            self.minb = int((self.box_size - 1) / 2)
+            self.maxb = int(self.dim - (self.box_size + 1) / 2)
 
     def reset(self):
         super().reset()
@@ -38,23 +38,23 @@ class C6(Connect6):
             self.round += 1
             self.move_step = 0
             self.current_player = (self.current_player + 1) % 2
-    
-    @property
+
+
     def get_available_actions(self):
         if self.cor == True:
             a = []
+            b = []
             x, y = self.last_move[self.move_step]
             x, y = self.get_box_range(x, y)
             for i in range(self.box_size):
-                x += i
                 for j in range(self.box_size):
-                    y += j
-                    if self.board[y][x] != 2:
-                        a.append(x + y * self.dim)
-            return a
+                    if self.board[y + j][x + i] == 2:
+                        a.append((x + i) + (y + j) * self.dim)
+                        b.append(i * self.box_size + j)
+            return a, b
         else:
-            return self.available_actions
-    
+            return self.available_actions, self.available_actions
+
     def clip_coordinate(self, x):
         if x < self.minb:
             x = self.minb
@@ -65,7 +65,7 @@ class C6(Connect6):
     def get_box_range(self, x, y):
         x = self.clip_coordinate(x)
         y = self.clip_coordinate(y)
-        ltx = x - self.minb # 左上角
+        ltx = x - self.minb  # 左上角
         lty = y - self.minb
         return ltx, lty
 
@@ -112,7 +112,7 @@ class C6(Connect6):
         if self.cor == True:
             x, y = self.last_move[self.move_step]
             ltx, lty = self.get_box_range(x, y)
-            return square_state[..., ltx:ltx+self.box_size, lty:lty+self.box_size]
+            return square_state[..., ltx:ltx + self.box_size, lty:lty + self.box_size]
         else:
             return square_state
 

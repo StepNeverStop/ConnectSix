@@ -18,7 +18,7 @@ def main(_argv):
     config = load_config('./train_config.yaml')
     config['dim'] = FLAGS.size
     config['learning_rate'] = FLAGS.learning_rate
-    cp_dir = './models' + str(FLAGS.size)
+    cp_dir = './models/models' + str(FLAGS.size)
     pprint(config)
     env = C6(
         dim=config['dim']
