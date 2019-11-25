@@ -1,6 +1,7 @@
 
 import numpy as np
 import copy
+import json
 import tensorflow as tf
 from absl import logging
 from .bot_base import RL_Policy, Bot
@@ -27,7 +28,6 @@ class MCTS_POLICY(RL_Policy):
                  cp_dir='./models'
                  ):
         super().__init__(cp_dir=cp_dir)
-        self.state_dim = state_dim
         self.lr = learning_rate
         self.epochs = epochs
         self.data = ExperienceReplay(batch_size=batch_size, capacity=buffer_size)
@@ -92,13 +92,14 @@ class MCTS_POLICY(RL_Policy):
         for i in data:
             self.data.add(i)
 
-    def store_in_file(self, data, file_name='data'):
-        json_str = json.dumps([d.tolist() for d in data])  # 将一条经验转换为list
-        with open(f'{file_name}{self.state_dim}.data', 'a') as f:
-            f.write(json_str + '\n')  # 保存一条经验
+    def store_in_file(self, data, file_name='./data/data'):
+        with open(f'{file_name}.data', 'a') as f:
+            for i in data:
+                json_str = json.dumps([d.tolist() for d in i])  # 将一条经验转换为list
+                f.write(json_str + '\n')  # 保存一条经验
 
-    def _restore_from_file(self, data, file_name='data'):
-        with open(f'{file_name}{self.state_dim}.data') as f:
+    def _restore_from_file(self, data, file_name='./data/data'):
+        with open(f'{file_name}.data') as f:
             for json_str in f:  # 每行为一条经验
                 if json_str != '':
                     data = json.loads(json_str)

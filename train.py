@@ -19,6 +19,7 @@ def main(_argv):
     config['dim'] = FLAGS.size
     config['learning_rate'] = FLAGS.learning_rate
     cp_dir = './models/models' + str(FLAGS.size)
+    data_file = './data/data' + str(FLAGS.size)
     pprint(config)
     env = C6(
         dim=config['dim']
@@ -56,7 +57,7 @@ def main(_argv):
         dim=config['dim'],
         name='eval_policy'
     )
-    train_mcts_rl(env, player, eval_player, config)
+    train_mcts_rl(env, player, eval_player, config, cp_dir, data_file)
 
 
 def augment_data(dim, data):
@@ -107,7 +108,7 @@ def evaluate(num, ratio, env, player1, player2):
         return False
 
 
-def train_mcts_rl(env, player, eval_player, kwargs: dict):
+def train_mcts_rl(env, player, eval_player, kwargs: dict, cp_dir, data_file):
     game_batch = kwargs.get('game_batch', 1600)
     game_batch_size = kwargs.get('game_batch_size', 1)
     save_frequent = kwargs.get('save_frequent', 10)
@@ -124,11 +125,12 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict):
             data = list(data)[:]
             data = augment_data(env.dim, data)
             player.net.store(data)
+            player.net.store_in_file(data, file_name=data_file)
         player.net.learn()
         logging.info(f'模型第{i}批次已学习')
 
         if i % eval_interval == 0 and i != 0:
-            eval_player.net.restore(cp_dir='./models')
+            eval_player.net.restore(cp_dir=cp_dir)
             ret = evaluate(eval_num, ratio, env, player, eval_player)
             if ret:
                 player.net.save_checkpoint(i)
