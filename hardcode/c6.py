@@ -58,6 +58,8 @@ class Connect6(object):
         x, y = self.last_move[index]
         if x == -1 or y == -1:
             x, y = self.last_move[(index+1)%2]
+        if x == -1 or y == -1:
+            x, y = (self.dim+1)//2, (self.dim+1)//2
         mid = int((self.box_size - 1) / 2)
         minc = int((self.box_size - 1) / 2)
         maxc = int(self.dim - (self.box_size + 1) / 2)

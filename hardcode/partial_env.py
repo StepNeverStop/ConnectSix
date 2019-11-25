@@ -38,11 +38,11 @@ class PartialC6(object):
         index = 0
         for _dir, dir_func in self.directions.items():
             nx, ny = dir_func(x, y)
-            if self.is_outta_range(nx, ny):
+            if self.is_outta_range(nx, ny): # 判断x y是不是边界点
                 index += 1
                 continue
 
-            while board[ny][nx] == board[y][x]:
+            while board[ny][nx] == board[y][x]: 
                 self.oppo_count[index] += 1
                 nx, ny = dir_func(nx, ny)
                 if self.is_outta_range(nx, ny):
@@ -74,6 +74,7 @@ class PartialC6(object):
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 return self.available_actions[_b]
+        return random.sample(self.env.available_actions, 1)[0]
 
     def get_next(self):
         for key, value in self.nums.items():
@@ -82,7 +83,7 @@ class PartialC6(object):
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 return self.available_actions[_b]
-        return random.sample(env.available_actions, 1)[0]
+        return random.sample(self.env.available_actions, 1)[0]
     '''
     以下为游戏规则逻辑，不需要修改
     '''
