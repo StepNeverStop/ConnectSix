@@ -77,6 +77,10 @@ class PartialC6(object):
                 nx, ny = func[-1](x, y)
                 if self.is_outta_range(nx, ny):
                     continue
+                if self.board[ny][nx] == 2: # 跳第二步
+                    nx, ny = func[-1](nx, ny)
+                    if self.is_outta_range(nx, ny):
+                        continue
                 while self.board[ny][nx] == flag:
                     self.skip_count[index] += 1
                     nx, ny = func[-1](nx, ny)
@@ -119,17 +123,39 @@ class PartialC6(object):
                             break
             index += 1
 
+    def shuffle_same(self, x:list, y:list):
+        '''
+        根据列表y中相同元素的位置，排序不变地shuffle列表x
+        '''
+        a = -1
+        b=[]
+        for i, j in enumerate(y):
+            if j != a:
+                a = j
+                b.append(i)
+        b.append(len(y))
+        d=[]
+        for i in range(len(b)-1):
+            c = x[b[i]:b[i+1]]
+            random.shuffle(c)
+            d.extend(c)
+        return d
+
     def act(self):
         self.get_8actions()
-        self.nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
-        for key, value in self.nums.items():
-            _a = self.actions[key]
-            self.actions[key] = None
+        nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
+        self.action_index = list(nums.keys())
+        self.oppo_nums = list(nums.values())
+        self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
+        for index, value in enumerate(self.oppo_nums):
+            a_idx = self.action_index[index]
+            _a = self.actions[a_idx]
+            self.actions[a_idx] = None
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 if value >= 4:
-                    self.next_action = self.actions[7 - key]
-                    self.actions[7 - key] = None
+                    self.next_action = self.actions[7 - a_idx]
+                    self.actions[7 - a_idx] = None
                     return self.available_actions[_b], True
                 else:
                     return self.available_actions[_b], False
@@ -139,9 +165,10 @@ class PartialC6(object):
         if self.next_action is not None:
             x, y = self.next_action
             return self.available_actions[x + y * self.dim]
-        for key, value in self.nums.items():
-            _a = self.actions[key]
-            self.actions[key] = None
+        for index, value in enumerate(self.oppo_nums):
+            a_idx = self.action_index[index]
+            _a = self.actions[a_idx]
+            self.actions[a_idx] = None
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 return self.available_actions[_b]

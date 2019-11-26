@@ -32,8 +32,8 @@ def main(_argv):
             is_black = True     # 极致防御先手
         # print(is_black)
         # player2 = TestPlayer(ip='58.199.162.110', port=8080, is_black=is_black)
-        ret, winner = battle_loop(env, player1, player2, is_black=True)
-        print(f'第{i}局结束, {ret}')
+        ret, winner = battle_loop(env, player1, player2, is_black=is_black)
+        print(f'第{i:4d}局结束, {ret}')
         if ret:
             count += 1
         elif winner == -1:
