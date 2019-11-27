@@ -166,6 +166,7 @@ class PartialC6(object):
         nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
         self.action_index = list(nums.keys())
         self.oppo_nums = list(nums.values())
+        low_threat = True if self.oppo_nums[0] < 3 else False
         self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
         
         ergency_idx = []
@@ -180,19 +181,19 @@ class PartialC6(object):
                         self.next_action = self.actions[7 - a_idx]
                         self.actions[a_idx] = None
                         self.actions[7 - a_idx] = None
-                        return self.available_actions[_b], True
+                        return self.available_actions[_b], True, low_threat
         if len(ergency_idx) >= 2:
             _a = self.actions[ergency_idx[0]] 
             _b = _a[0] + _a[1] * self.dim
             self.next_action = self.actions[ergency_idx[1]]
             self.actions[ergency_idx[0]] = None
             self.actions[ergency_idx[1]] = None
-            return self.available_actions[_b], True
+            return self.available_actions[_b], True, low_threat
         elif len(ergency_idx) == 1:
             _a = self.actions[ergency_idx[0]] 
             _b = _a[0] + _a[1] * self.dim
             self.actions[ergency_idx[0]] = None
-            return self.available_actions[_b], False
+            return self.available_actions[_b], False, low_threat
         
         for index, value in enumerate(self.oppo_nums):
             a_idx = self.action_index[index]
@@ -202,14 +203,14 @@ class PartialC6(object):
                 _b = _a[0] + _a[1] * self.dim
                 if value >= 4:
                     if self.actions[7 - a_idx] is None or self.jumps[a_idx]:
-                        return self.available_actions[_b], False
+                        return self.available_actions[_b], False, low_threat
                     else:
                         self.next_action = self.actions[7 - a_idx]
                         self.actions[7 - a_idx] = None
-                        return self.available_actions[_b], True
+                        return self.available_actions[_b], True, low_threat
                 else:
-                    return self.available_actions[_b], False
-        return random.sample(self.env.available_actions, 1)[0], False
+                    return self.available_actions[_b], False, low_threat
+        return random.sample(self.env.available_actions, 1)[0], False, low_threat
 
     def get_next(self):
         if self.next_action is not None:
@@ -223,69 +224,3 @@ class PartialC6(object):
                 _b = _a[0] + _a[1] * self.dim
                 return self.available_actions[_b]
         return random.sample(self.env.available_actions, 1)[0]
-
-    '''
-    以下为游戏规则逻辑，不需要修改
-    '''
-
-    def can_place(self, x, y):
-        """
-        判断该动作是否可以执行
-        """
-        if self.is_outta_range(x, y):
-            return False, '位置越界'
-        elif self.board[y][x] != 2:
-            return False, f'此处已着子({x+1},{y+1})'
-        else:
-            return True, '可以落子'
-
-    def is_over(self):
-        """
-        判断游戏是否已经结束
-        """
-        board = self.board
-        x, y = self.last_move[(self.move_step + 1) % 2]
-        for _dir, dir_func in self.directions.items():
-            nx, ny = dir_func(x, y)
-            if self.is_outta_range(nx, ny):
-                continue
-
-            if board[ny][nx] == board[y][x]:
-                # to check properly, go to the end of direction
-                while board[ny][nx] == board[y][x]:
-                    nx, ny = dir_func(nx, ny)
-                    if self.is_outta_range(nx, ny):
-                        break
-
-                reverse_dir_func = reverse_of(dir_func)
-                nx, ny = reverse_dir_func(nx, ny)  # one step back.
-
-                is_end = self._track(nx, ny, reverse_dir_func)
-                if is_end:
-                    if board[ny][nx] == 2:
-                        return False, None
-                    else:
-                        # returns player who won.
-                        return True, board[ny][nx]
-        if 2 not in self.board:
-            return True, -1
-        else:
-            return False, None
-
-    def _track(self, start_x, start_y, dir_func):
-        x, y = start_x, start_y
-        original_player = self.board[y][x]
-
-        step = 1
-        while True:
-            x, y = dir_func(x, y)
-            if self.is_outta_range(x, y) or self.board[y][x] != original_player:
-                if step >= 6:   # 同色连子数大于等于6个时，判定为胜
-                    return True
-                return False
-            step += 1
-
-        if step > 6:
-            return True
-
-        return True

@@ -9,6 +9,7 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 from c6 import Connect6
 from partial_env import PartialC6
+from attack_env import AttackC6
 
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
@@ -24,8 +25,6 @@ def main(_argv):
     ip = FLAGS.ip
     port = FLAGS.port
     env = Connect6(dim=board_size, box_size=box_size)
-    player1 = CounterPlayer()   # 极致防御策略
-    # player2 = RandomPlayer()
     count = 0
     tie = 0
     for i in range(FLAGS.num):
@@ -39,6 +38,8 @@ def main(_argv):
         else:
             print('极致防御 ----> 白棋|后手')
         player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
+        player1 = CounterPlayer(is_black=is_black)   # 极致防御策略
+        # player2 = RandomPlayer()
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
         print(f'第{i:4d}局结束, {ret}')
         if ret:
@@ -98,11 +99,17 @@ def battle_loop(env, player1, player2=None, is_black=True):
 
 class CounterPlayer:
     def __init__(self, **kwargs):
+        is_black = kwargs.get('is_black')
+        if is_black:
+            self.flag = 0
+        else:
+            self.flag = 1
+        self.attack_action_list = []
         pass
 
     def choose_action(self, env):
         partial_env = PartialC6(env, 1)
-        idx0, ergency = partial_env.act()
+        idx0, ergency, low_threat0 = partial_env.act()
         x0, y0 = int(idx0 % env.dim), int(idx0 // env.dim)
         if ergency: # 如果形势危急
             if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
@@ -110,10 +117,10 @@ class CounterPlayer:
             else:
                 idx1 = partial_env.get_next()
                 x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
-                return [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
+                ret = [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
         else:
             partial_env = PartialC6(env, 0)
-            idx1, ergency = partial_env.act()
+            idx1, ergency, low_threat1 = partial_env.act()
             x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
             if ergency: # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
@@ -121,14 +128,28 @@ class CounterPlayer:
                 else:
                     idx2 = partial_env.get_next()
                     x2, y2 = int(idx2 % env.dim), int(idx2 // env.dim)
-                    return [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
+                    ret = [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
             else:
                 if env.move_step == 1:
                     return [x0], [y0]
-                if x0 == x1 and y0 == y1:
-                    idx1 = partial_env.get_next()
-                    x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
-                return [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
+                else:
+                    if x0 == x1 and y0 == y1:
+                        idx1 = partial_env.get_next()
+                        x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
+                    ret = [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
+
+        if low_threat0 and low_threat1:
+            while len(self.attack_action_list) > 0:
+                a = self.attack_action_list.pop()
+                xx, yy = a[:]
+                if env.board[yy[0]][xx[0]] == 2 and env.board[yy[1]][xx[1]] == 2:
+                    self.attack_action_list.extend(AttackC6(env, xx[0], yy[0], self.flag).get_actions())
+                    self.attack_action_list.extend(AttackC6(env, xx[1], yy[1], self.flag).get_actions())
+                    return xx, yy
+
+        self.attack_action_list.extend(AttackC6(env, ret[0][0], ret[1][0], self.flag).get_actions())
+        self.attack_action_list.extend(AttackC6(env, ret[0][1], ret[1][1], self.flag).get_actions())
+        return ret
 
     def move(self, *args, **kwargs):
         pass

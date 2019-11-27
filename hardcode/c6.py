@@ -60,9 +60,9 @@ class Connect6(object):
             x, y = self.last_move[(index + 1) % 2]
         if x == -1 or y == -1:
             x, y = (self.dim + 1) // 2, (self.dim + 1) // 2
-        mid = int((self.box_size - 1) / 2)
-        minc = int((self.box_size - 1) / 2)
-        maxc = int(self.dim - (self.box_size + 1) / 2)
+        mid = int((self.box_size - 1) // 2)
+        minc = int((self.box_size - 1) // 2)
+        maxc = int(self.dim - (self.box_size + 1) // 2)
         if minc <= x <= maxc:
             _x = mid
         elif x < minc:
@@ -88,6 +88,31 @@ class Connect6(object):
                 if self.board[lty + j][ltx + i] == 2:
                     ad[i + j * self.box_size] = (ltx + i) + (lty + j) * self.dim
         return board, _x, _y, ad
+
+    def get_attack_partial_env(self, x, y):
+        mid = int((self.box_size - 1) // 2)
+        minc = int((self.box_size - 1) // 2)
+        maxc = int(self.dim - (self.box_size + 1) // 2)
+        if minc <= x <= maxc:
+            _x = mid
+        elif x < minc:
+            _x = x
+            x = minc
+        elif x > maxc:
+            _x = x - self.dim + self.box_size
+            x = maxc
+
+        if minc <= y <= maxc:
+            _y = mid
+        elif y < minc:
+            _y = y
+            y = minc
+        elif y > maxc:
+            _y = y - self.dim + self.box_size
+            y = maxc
+        ltx, lty = x - minc, y - minc
+        board = self.board[..., lty:lty + self.box_size, ltx:ltx + self.box_size]
+        return board, _x, _y
 
     def reset(self):
         """
