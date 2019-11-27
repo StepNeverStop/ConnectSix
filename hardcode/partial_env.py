@@ -167,6 +167,33 @@ class PartialC6(object):
         self.action_index = list(nums.keys())
         self.oppo_nums = list(nums.values())
         self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
+        
+        ergency_idx = []
+        for index, value in enumerate(self.oppo_nums):
+            if value >= 4:
+                a_idx = self.action_index[index]
+                _a = self.actions[a_idx]
+                if _a is not None:
+                    _b = _a[0] + _a[1] * self.dim
+                    ergency_idx.append(a_idx)
+                    if self.actions[7 - a_idx] is not None and not self.jumps[a_idx]:
+                        self.next_action = self.actions[7 - a_idx]
+                        self.actions[a_idx] = None
+                        self.actions[7 - a_idx] = None
+                        return self.available_actions[_b], True
+        if len(ergency_idx) >= 2:
+            _a = self.actions[ergency_idx[0]] 
+            _b = _a[0] + _a[1] * self.dim
+            self.next_action = self.actions[ergency_idx[1]]
+            self.actions[ergency_idx[0]] = None
+            self.actions[ergency_idx[1]] = None
+            return self.available_actions[_b], True
+        elif len(ergency_idx) == 1:
+            _a = self.actions[ergency_idx[0]] 
+            _b = _a[0] + _a[1] * self.dim
+            self.actions[ergency_idx[0]] = None
+            return self.available_actions[_b], False
+        
         for index, value in enumerate(self.oppo_nums):
             a_idx = self.action_index[index]
             _a = self.actions[a_idx]
