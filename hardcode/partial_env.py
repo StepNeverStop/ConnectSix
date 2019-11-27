@@ -32,6 +32,7 @@ class PartialC6(object):
         self.skip_count = [0] * 8
         self.get_8actions = self.get_8actions_v2
         self.next_action = None
+        self.jumps = [False] * 8
 
     def is_outta_range(self, x, y):
         return x < 0 or x >= self.dim or y < 0 or y >= self.dim
@@ -71,8 +72,8 @@ class PartialC6(object):
         return (np.array(x) + np.array(y)).tolist()
 
     def calculate_skip(self, flag):
-        jump2 = False
         for index, func in enumerate(self.directions.items()):
+            jump2 = False
             if self.actions[index] is not None:
                 x, y = self.actions[index]  # 可落子的位置
                 nx, ny = func[-1](x, y) # 下一个位置
@@ -89,6 +90,8 @@ class PartialC6(object):
                     nx, ny = func[-1](nx, ny)
                     if self.is_outta_range(nx, ny):
                         break
+                
+                self.jumps[index] = True
 
                 if self.is_outta_range(nx, ny): # 如果越界了，就退出
                     continue
@@ -171,7 +174,7 @@ class PartialC6(object):
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 if value >= 4:
-                    if self.actions[7 - a_idx] is None:
+                    if self.actions[7 - a_idx] is None or self.jumps[a_idx]:
                         return self.available_actions[_b], False
                     else:
                         self.next_action = self.actions[7 - a_idx]
