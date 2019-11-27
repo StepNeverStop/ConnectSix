@@ -123,6 +123,9 @@ class CounterPlayer:
                     x2, y2 = int(idx2 % env.dim), int(idx2 // env.dim)
                     return [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
             else:
+                if x0 == x1 and y0 == y1:
+                    idx1 = partial_env.get_next()
+                    x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
                 return [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
 
     def move(self, *args, **kwargs):
