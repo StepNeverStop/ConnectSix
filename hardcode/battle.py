@@ -124,7 +124,7 @@ class CounterPlayer:
             x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
             if ergency: # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
-                    return [x1, y1]
+                    return [x1], [y1]
                 else:
                     idx2 = partial_env.get_next()
                     x2, y2 = int(idx2 % env.dim), int(idx2 // env.dim)
@@ -141,10 +141,14 @@ class CounterPlayer:
         if low_threat0 and low_threat1:
             while len(self.attack_action_list) > 0:
                 a = self.attack_action_list.pop()
-                xx, yy = a[:]
-                if env.board[yy[0]][xx[0]] == 2 and env.board[yy[1]][xx[1]] == 2:
-                    self.attack_action_list.extend(AttackC6(env, xx[0], yy[0], self.flag).get_actions())
-                    self.attack_action_list.extend(AttackC6(env, xx[1], yy[1], self.flag).get_actions())
+                xy0, xy1 = a[:]
+                if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
+                    continue
+                if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
+                    self.attack_action_list.extend(AttackC6(env, xy0[0], xy0[1], self.flag).get_actions())
+                    self.attack_action_list.extend(AttackC6(env, xy1[0], xy1[1], self.flag).get_actions())
+                    xx = [xy0[0], xy1[0]]
+                    yy = [xy0[1], xy1[1]]
                     return xx, yy
 
         self.attack_action_list.extend(AttackC6(env, ret[0][0], ret[1][0], self.flag).get_actions())

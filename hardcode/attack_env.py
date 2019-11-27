@@ -39,7 +39,7 @@ class AttackC6(object):
     def get_actions(self):
         al = []
         # right
-        for i in range(5):
+        for i in range(6):
             part = self.board[self.yy, i:i+6]
             if (part==self.oppo_flag).any():
                 continue
@@ -48,7 +48,7 @@ class AttackC6(object):
                 ll = self.sep_actions(l, self.yy, axis='x')
                 al.extend(ll)
         # up
-        for i in range(5):
+        for i in range(6):
             part = self.board[i:i+6, self.xx]
             if (part==self.oppo_flag).any():
                 continue
@@ -57,25 +57,29 @@ class AttackC6(object):
                 ll = self.sep_actions(l, self.xx, axis='y')
                 al.extend(ll)
         # left top 2 right bottom
-        diag = self.board.diagonal(self.xx-self.yy)
-        for i in range(5):
-            part = self.board[i:i+6]
-            if (part==self.oppo_flag).any():
-                continue
-            if np.where(part==self.flag)[0].shape[0] >= 2:
-                l = np.where(part==2)[0]+i
-                ll = self.sep_actions(l, -1, axis='l2r')
-                al.extend(ll)
+        _diff = self.xx-self.yy
+        if -6 < _diff < 6:
+            diag = self.board.diagonal(_diff)
+            for i in range(6 - abs(_diff)):
+                part = self.board[i:i+6]
+                if (part==self.oppo_flag).any():
+                    continue
+                if np.where(part==self.flag)[0].shape[0] >= 2:
+                    l = np.where(part==2)[0]+i
+                    ll = self.sep_actions(l, -1, axis='l2r')
+                    al.extend(ll)
         # right top 2 left bottom
-        diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
-        for i in range(5):
-            part = self.board[i:i+6]
-            if (part==self.oppo_flag).any():
-                continue
-            if np.where(part==self.flag)[0].shape[0] >= 2:
-                l = np.where(part==2)[0]+i
-                ll = self.sep_actions(l, -1, axis='r2l')
-                al.extend(ll)
+        _diff = 10 - self.xx - self.yy
+        if -6 < _diff < 6:
+            diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
+            for i in range(6 - abs(_diff)):
+                part = self.board[i:i+6]
+                if (part==self.oppo_flag).any():
+                    continue
+                if np.where(part==self.flag)[0].shape[0] >= 2:
+                    l = np.where(part==2)[0]+i
+                    ll = self.sep_actions(l, -1, axis='r2l')
+                    al.extend(ll)
         if len(al) != 0:
             al = (np.array(al)+np.array([self.diff_x, self.diff_y])).tolist()
         return al

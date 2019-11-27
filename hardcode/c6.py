@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import copy
 
 
 def cls():  # console helper methods
@@ -111,7 +112,7 @@ class Connect6(object):
             _y = y - self.dim + self.box_size
             y = maxc
         ltx, lty = x - minc, y - minc
-        board = self.board[..., lty:lty + self.box_size, ltx:ltx + self.box_size]
+        board = copy.deepcopy(self.board[..., lty:lty + self.box_size, ltx:ltx + self.box_size])
         return board, _x, _y
 
     def reset(self):
