@@ -14,14 +14,18 @@ flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
 flags.DEFINE_boolean('render', False, '是否渲染')
+flags.DEFINE_string('ip', '58.199.162.110', '服务器IP')
+flags.DEFINE_string('port', '8080', '端口')
 
 
 def main(_argv):
     board_size = FLAGS.board_size
     box_size = FLAGS.box_size
+    ip = FLAGS.ip
+    port = FLAGS.port
     env = Connect6(dim=board_size, box_size=box_size)
     player1 = CounterPlayer()   # 极致防御策略
-    player2 = RandomPlayer()
+    # player2 = RandomPlayer()
     count = 0
     tie = 0
     for i in range(FLAGS.num):
@@ -30,8 +34,11 @@ def main(_argv):
             is_black = False    # 极致防御后手
         else:
             is_black = True     # 极致防御先手
-        # print(is_black)
-        # player2 = TestPlayer(ip='58.199.162.110', port=8080, is_black=is_black)
+        if is_black:
+            print('极致防御 ----> 黑棋|先手')
+        else:
+            print('极致防御 ----> 白棋|后手')
+        player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
         print(f'第{i:4d}局结束, {ret}')
         if ret:
@@ -97,25 +104,26 @@ class CounterPlayer:
         partial_env = PartialC6(env, 1)
         idx0, ergency = partial_env.act()
         x0, y0 = int(idx0 % env.dim), int(idx0 // env.dim)
-        if env.move_step == 1:
-            # print(idx0)
-            # print(x0, y0)
-            return [x0], [y0]
-        else:
-            if ergency:
+        if ergency: # 如果形势危急
+            if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
+                return [x0], [y0]
+            else:
                 idx1 = partial_env.get_next()
                 x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
-                return [x0, x1], [y0, y1]
-
+                return [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
+        else:
             partial_env = PartialC6(env, 0)
             idx1, ergency = partial_env.act()
-            if idx1 == idx0:
-                idx1 = partial_env.get_next()
             x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
-            return [x0, x1], [y0, y1]
-            # print(idx0, idx1)
-            # print(x0, y0)
-            # print(x1, y1)
+            if ergency: # 如果对手第一子不危急，第二子危急
+                if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
+                    return [x1, y1]
+                else:
+                    idx2 = partial_env.get_next()
+                    x2, y2 = int(idx2 % env.dim), int(idx2 // env.dim)
+                    return [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
+            else:
+                return [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
 
     def move(self, *args, **kwargs):
         pass

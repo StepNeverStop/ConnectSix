@@ -154,9 +154,12 @@ class PartialC6(object):
             if _a is not None:
                 _b = _a[0] + _a[1] * self.dim
                 if value >= 4:
-                    self.next_action = self.actions[7 - a_idx]
-                    self.actions[7 - a_idx] = None
-                    return self.available_actions[_b], True
+                    if self.actions[7 - a_idx] is None:
+                        return self.available_actions[_b], False
+                    else:
+                        self.next_action = self.actions[7 - a_idx]
+                        self.actions[7 - a_idx] = None
+                        return self.available_actions[_b], True
                 else:
                     return self.available_actions[_b], False
         return random.sample(self.env.available_actions, 1)[0], False
