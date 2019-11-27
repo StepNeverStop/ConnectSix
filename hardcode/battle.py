@@ -25,7 +25,7 @@ def main(_argv):
     port = FLAGS.port
     env = Connect6(dim=board_size, box_size=box_size)
     player1 = CounterPlayer()   # 极致防御策略
-    # player2 = RandomPlayer()
+    player2 = RandomPlayer()
     count = 0
     tie = 0
     for i in range(FLAGS.num):
@@ -34,11 +34,11 @@ def main(_argv):
             is_black = False    # 极致防御后手
         else:
             is_black = True     # 极致防御先手
-        if is_black:
-            print('极致防御 ----> 黑棋|先手')
-        else:
-            print('极致防御 ----> 白棋|后手')
-        player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
+        # if is_black:
+        #     print('极致防御 ----> 黑棋|先手')
+        # else:
+        #     print('极致防御 ----> 白棋|后手')
+        # player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
         print(f'第{i:4d}局结束, {ret}')
         if ret:
@@ -123,6 +123,8 @@ class CounterPlayer:
                     x2, y2 = int(idx2 % env.dim), int(idx2 // env.dim)
                     return [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
             else:
+                if env.move_step == 1:
+                    return [x0], [y0]
                 if x0 == x1 and y0 == y1:
                     idx1 = partial_env.get_next()
                     x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
