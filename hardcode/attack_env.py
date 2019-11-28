@@ -39,66 +39,71 @@ class AttackC6(object):
     def get_actions(self):
         al = []  # 连456个
         bl = []  # 连6个
-        # right
-        for i in range(6):
-            part = self.board[self.yy, i:i + 6]
-            if (part == self.oppo_flag).any():
-                continue
-            if np.where(part == self.flag)[0].shape[0] >= 2:
-                t = np.where(part == 2)[0]
-                l = t + i
-                ll = self.sep_actions(l, self.yy, axis='x')
-                if len(t) > 2:
-                    al.extend(ll)
-                else:
-                    bl.extend(ll)
-
-        # up
-        for i in range(6):
-            part = self.board[i:i + 6, self.xx]
-            if (part == self.oppo_flag).any():
-                continue
-            if np.where(part == self.flag)[0].shape[0] >= 2:
-                t = np.where(part == 2)[0]
-                l = t + i
-                ll = self.sep_actions(l, self.xx, axis='y')
-                if len(t) > 2:
-                    al.extend(ll)
-                else:
-                    bl.extend(ll)
-
-        # left top 2 right bottom
-        _diff = self.xx - self.yy
-        if -6 < _diff < 6:
-            diag = self.board.diagonal(_diff)
-            for i in range(6 - abs(_diff)):
-                part = diag[i:i + 6]
-                if (part == self.oppo_flag).any():
-                    continue
-                if np.where(part == self.flag)[0].shape[0] >= 2:
-                    t = np.where(part == 2)[0]
-                    l = t + i
-                    ll = self.sep_actions(l, -1, axis='l2r')
-                    if len(t) > 2:
-                        al.extend(ll)
-                    else:
-                        bl.extend(ll)
-        # right top 2 left bottom
-        _diff = 10 - self.xx - self.yy
-        if -6 < _diff < 6:
-            diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
-            for i in range(6 - abs(_diff)):
-                part = diag[i:i + 6]
-                if (part == self.oppo_flag).any():
-                    continue
-                if np.where(part == self.flag)[0].shape[0] >= 2:
-                    t = np.where(part == 2)[0]
-                    l = t + i
-                    ll = self.sep_actions(l, -1, axis='r2l')
-                    if len(t) > 2:
-                        al.extend(ll)
-                    else:
-                        bl.extend(ll)
+        shuf = [0, 1, 2, 3]
+        random.shuffle(shuf)
+        for k in shuf:
+            if k == 0:
+                # right
+                for i in range(6):
+                    part = self.board[self.yy, i:i + 6]
+                    if (part == self.oppo_flag).any():
+                        continue
+                    if np.where(part == self.flag)[0].shape[0] >= 2:
+                        t = np.where(part == 2)[0]
+                        l = t + i
+                        ll = self.sep_actions(l, self.yy, axis='x')
+                        if len(t) > 2:
+                            al.extend(ll)
+                        else:
+                            bl.extend(ll)
+            elif k == 1:
+                # up
+                for i in range(6):
+                    part = self.board[i:i + 6, self.xx]
+                    if (part == self.oppo_flag).any():
+                        continue
+                    if np.where(part == self.flag)[0].shape[0] >= 2:
+                        t = np.where(part == 2)[0]
+                        l = t + i
+                        ll = self.sep_actions(l, self.xx, axis='y')
+                        if len(t) > 2:
+                            al.extend(ll)
+                        else:
+                            bl.extend(ll)
+            elif k == 2:
+                # left top 2 right bottom
+                _diff = self.xx - self.yy
+                if -6 < _diff < 6:
+                    diag = self.board.diagonal(_diff)
+                    for i in range(6 - abs(_diff)):
+                        part = diag[i:i + 6]
+                        if (part == self.oppo_flag).any():
+                            continue
+                        if np.where(part == self.flag)[0].shape[0] >= 2:
+                            t = np.where(part == 2)[0]
+                            l = t + i
+                            ll = self.sep_actions(l, -1, axis='l2r')
+                            if len(t) > 2:
+                                al.extend(ll)
+                            else:
+                                bl.extend(ll)
+            elif k == 3:
+                # right top 2 left bottom
+                _diff = 10 - self.xx - self.yy
+                if -6 < _diff < 6:
+                    diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
+                    for i in range(6 - abs(_diff)):
+                        part = diag[i:i + 6]
+                        if (part == self.oppo_flag).any():
+                            continue
+                        if np.where(part == self.flag)[0].shape[0] >= 2:
+                            t = np.where(part == 2)[0]
+                            l = t + i
+                            ll = self.sep_actions(l, -1, axis='r2l')
+                            if len(t) > 2:
+                                al.extend(ll)
+                            else:
+                                bl.extend(ll)
 
         if len(al) != 0:
             al = (np.array(al) + np.array([self.diff_x, self.diff_y])).tolist()
