@@ -76,13 +76,13 @@ class PartialC6(object):
             jump2 = False
             if self.actions[index] is not None:
                 x, y = self.actions[index]  # 可落子的位置
-                nx, ny = func[-1](x, y) # 下一个位置
-                if self.is_outta_range(nx, ny): # 越界了就退出
+                nx, ny = func[-1](x, y)  # 下一个位置
+                if self.is_outta_range(nx, ny):  # 越界了就退出
                     continue
-                if self.board[ny][nx] == 2: # 如果空位旁边还是空位
+                if self.board[ny][nx] == 2:  # 如果空位旁边还是空位
                     nx, ny = func[-1](nx, ny)   # 就再往后挪一位
                     jump2 = True    # 标记已经跳了两格了
-                    if self.is_outta_range(nx, ny): # 如果跳2格后越界，就退出
+                    if self.is_outta_range(nx, ny):  # 如果跳2格后越界，就退出
                         continue
 
                 while self.board[ny][nx] == flag:   # 跳1格或者2格之后，如果还是对手的棋，就沿这个方向继续走
@@ -90,22 +90,21 @@ class PartialC6(object):
                     nx, ny = func[-1](nx, ny)
                     if self.is_outta_range(nx, ny):
                         break
-                
+
                 self.jumps[index] = True
 
-                if self.is_outta_range(nx, ny): # 如果越界了，就退出
+                if self.is_outta_range(nx, ny):  # 如果越界了，就退出
                     continue
                 elif self.board[ny][nx] == 2 and jump2 == False:    # 如果遇到空位，空位旁边是对手的棋，并且之前只跳了一格
                     nx, ny = func[-1](nx, ny)   # 就再往后挪一位
                     jump2 = True    # 标记已经跳够2格
-                    if self.is_outta_range(nx, ny): # 如果越界了，就退出
+                    if self.is_outta_range(nx, ny):  # 如果越界了，就退出
                         continue
                     while self.board[ny][nx] == flag:   # 跳2格后，如果还遇到对手的棋，就沿这个方向继续走
                         self.skip_count[index] += 1
                         nx, ny = func[-1](nx, ny)
                         if self.is_outta_range(nx, ny):
                             break
-
 
     def reverse_add(self, x: list):
         return (np.array(x) + np.array(list(reversed(x))) - 1).tolist()
@@ -143,20 +142,20 @@ class PartialC6(object):
                             break
             index += 1
 
-    def shuffle_same(self, x:list, y:list):
+    def shuffle_same(self, x: list, y: list):
         '''
         根据列表y中相同元素的位置，排序不变地shuffle列表x
         '''
         a = -1
-        b=[]
+        b = []
         for i, j in enumerate(y):
             if j != a:
                 a = j
                 b.append(i)
         b.append(len(y))
-        d=[]
-        for i in range(len(b)-1):
-            c = x[b[i]:b[i+1]]
+        d = []
+        for i in range(len(b) - 1):
+            c = x[b[i]:b[i + 1]]
             random.shuffle(c)
             d.extend(c)
         return d
@@ -168,7 +167,7 @@ class PartialC6(object):
         self.oppo_nums = list(nums.values())
         low_threat = True if self.oppo_nums[0] < 3 else False
         self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
-        
+
         ergency_idx = []
         for index, value in enumerate(self.oppo_nums):
             if value >= 4:
@@ -183,18 +182,18 @@ class PartialC6(object):
                         self.actions[7 - a_idx] = None
                         return self.available_actions[_b], True, low_threat
         if len(ergency_idx) >= 2:
-            _a = self.actions[ergency_idx[0]] 
+            _a = self.actions[ergency_idx[0]]
             _b = _a[0] + _a[1] * self.dim
             self.next_action = self.actions[ergency_idx[1]]
             self.actions[ergency_idx[0]] = None
             self.actions[ergency_idx[1]] = None
             return self.available_actions[_b], True, low_threat
         elif len(ergency_idx) == 1:
-            _a = self.actions[ergency_idx[0]] 
+            _a = self.actions[ergency_idx[0]]
             _b = _a[0] + _a[1] * self.dim
             self.actions[ergency_idx[0]] = None
             return self.available_actions[_b], False, low_threat
-        
+
         for index, value in enumerate(self.oppo_nums):
             a_idx = self.action_index[index]
             _a = self.actions[a_idx]

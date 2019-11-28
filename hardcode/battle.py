@@ -40,6 +40,7 @@ def main(_argv):
         player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         player1 = CounterPlayer(is_black=is_black)   # 极致防御策略
         # player2 = RandomPlayer()
+        # player2 = CounterPlayer(is_black=False if is_black else True)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
         print(f'第{i:4d}局结束, {ret}')
         if ret:
@@ -105,13 +106,24 @@ class CounterPlayer:
         else:
             self.flag = 1
         self.attack_action_list = []
+        self.win_list = []
         pass
 
     def choose_action(self, env):
+        while len(self.win_list) > 0:
+            a = self.win_list.pop()
+            xy0, xy1 = a[:]
+            if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
+                continue
+            if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
+                xx = [xy0[0], xy1[0]]
+                yy = [xy0[1], xy1[1]]
+                return xx, yy
+
         partial_env = PartialC6(env, 1)
         idx0, ergency, low_threat0 = partial_env.act()
         x0, y0 = int(idx0 % env.dim), int(idx0 // env.dim)
-        if ergency: # 如果形势危急
+        if ergency:  # 如果形势危急
             if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
                 return [x0], [y0]
             else:
@@ -122,7 +134,7 @@ class CounterPlayer:
             partial_env = PartialC6(env, 0)
             idx1, ergency, low_threat1 = partial_env.act()
             x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
-            if ergency: # 如果对手第一子不危急，第二子危急
+            if ergency:  # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
                     return [x1], [y1]
                 else:
@@ -145,14 +157,22 @@ class CounterPlayer:
                 if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
                     continue
                 if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
-                    self.attack_action_list.extend(AttackC6(env, xy0[0], xy0[1], self.flag).get_actions())
-                    self.attack_action_list.extend(AttackC6(env, xy1[0], xy1[1], self.flag).get_actions())
+                    aaaa = AttackC6(env, xy0[0], xy0[1], self.flag).get_actions()
+                    self.attack_action_list.extend(aaaa[0])
+                    self.win_list.extend(aaaa[1])
+                    aaaa = AttackC6(env, xy1[0], xy1[1], self.flag).get_actions()
+                    self.attack_action_list.extend(aaaa[0])
+                    self.win_list.extend(aaaa[1])
                     xx = [xy0[0], xy1[0]]
                     yy = [xy0[1], xy1[1]]
                     return xx, yy
 
-        self.attack_action_list.extend(AttackC6(env, ret[0][0], ret[1][0], self.flag).get_actions())
-        self.attack_action_list.extend(AttackC6(env, ret[0][1], ret[1][1], self.flag).get_actions())
+        aaaa = AttackC6(env, ret[0][0], ret[1][0], self.flag).get_actions()
+        self.attack_action_list.extend(aaaa[0])
+        self.win_list.extend(aaaa[1])
+        aaaa = AttackC6(env, ret[0][1], ret[1][1], self.flag).get_actions()
+        self.attack_action_list.extend(aaaa[0])
+        self.win_list.extend(aaaa[1])
         return ret
 
     def move(self, *args, **kwargs):

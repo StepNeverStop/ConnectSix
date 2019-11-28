@@ -16,7 +16,7 @@ class AttackC6(object):
         self.x = x
         self.y = y
         self.flag = flag
-        self.oppo_flag = (flag+1)%2
+        self.oppo_flag = (flag + 1) % 2
         self.dim = env.box_size               # 棋盘格维度
         self.directions = {
             'up': lambda x, y: (x, y + 1),
@@ -35,54 +35,76 @@ class AttackC6(object):
 
     def is_outta_range(self, x, y):
         return x < 0 or x >= self.dim or y < 0 or y >= self.dim
-    
+
     def get_actions(self):
-        al = []
+        al = []  # 连456个
+        bl = []  # 连6个
         # right
         for i in range(6):
-            part = self.board[self.yy, i:i+6]
-            if (part==self.oppo_flag).any():
+            part = self.board[self.yy, i:i + 6]
+            if (part == self.oppo_flag).any():
                 continue
-            if np.where(part==self.flag)[0].shape[0] >= 2:
-                l = np.where(part==2)[0]+i
+            if np.where(part == self.flag)[0].shape[0] >= 2:
+                t = np.where(part == 2)[0]
+                l = t + i
                 ll = self.sep_actions(l, self.yy, axis='x')
-                al.extend(ll)
+                if len(t) > 2:
+                    al.extend(ll)
+                else:
+                    bl.extend(ll)
+
         # up
         for i in range(6):
-            part = self.board[i:i+6, self.xx]
-            if (part==self.oppo_flag).any():
+            part = self.board[i:i + 6, self.xx]
+            if (part == self.oppo_flag).any():
                 continue
-            if np.where(part==self.flag)[0].shape[0] >= 2:
-                l = np.where(part==2)[0]+i
+            if np.where(part == self.flag)[0].shape[0] >= 2:
+                t = np.where(part == 2)[0]
+                l = t + i
                 ll = self.sep_actions(l, self.xx, axis='y')
-                al.extend(ll)
+                if len(t) > 2:
+                    al.extend(ll)
+                else:
+                    bl.extend(ll)
+
         # left top 2 right bottom
-        _diff = self.xx-self.yy
+        _diff = self.xx - self.yy
         if -6 < _diff < 6:
             diag = self.board.diagonal(_diff)
             for i in range(6 - abs(_diff)):
-                part = self.board[i:i+6]
-                if (part==self.oppo_flag).any():
+                part = self.board[i:i + 6]
+                if (part == self.oppo_flag).any():
                     continue
-                if np.where(part==self.flag)[0].shape[0] >= 2:
-                    l = np.where(part==2)[0]+i
+                if np.where(part == self.flag)[0].shape[0] >= 2:
+                    t = np.where(part == 2)[0]
+                    l = t + i
                     ll = self.sep_actions(l, -1, axis='l2r')
-                    al.extend(ll)
+                    if len(t) > 2:
+                        al.extend(ll)
+                    else:
+                        bl.extend(ll)
         # right top 2 left bottom
         _diff = 10 - self.xx - self.yy
         if -6 < _diff < 6:
             diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
             for i in range(6 - abs(_diff)):
-                part = self.board[i:i+6]
-                if (part==self.oppo_flag).any():
+                part = self.board[i:i + 6]
+                if (part == self.oppo_flag).any():
                     continue
-                if np.where(part==self.flag)[0].shape[0] >= 2:
-                    l = np.where(part==2)[0]+i
+                if np.where(part == self.flag)[0].shape[0] >= 2:
+                    t = np.where(part == 2)[0]
+                    l = t + i
                     ll = self.sep_actions(l, -1, axis='r2l')
-                    al.extend(ll)
+                    if len(t) > 2:
+                        al.extend(ll)
+                    else:
+                        bl.extend(ll)
+
         if len(al) != 0:
-            al = (np.array(al)+np.array([self.diff_x, self.diff_y])).tolist()
-        return al
+            al = (np.array(al) + np.array([self.diff_x, self.diff_y])).tolist()
+        if len(bl) != 0:
+            bl = (np.array(bl) + np.array([self.diff_x, self.diff_y])).tolist()
+        return al, bl
 
     def sep_actions(self, l, xy, axis):
         a = []
@@ -110,6 +132,6 @@ class AttackC6(object):
         elif axis == 'r2l':
             for i in a:
                 b.append(
-                    [[10-i[0], i[0]], [10-i[1], i[1]]]
+                    [[10 - i[0], i[0]], [10 - i[1], i[1]]]
                 )
         return b
