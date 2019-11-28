@@ -93,6 +93,7 @@ def battle_loop(env, player1, player2=None, is_black=True):
     while True:
         if FLAGS.render:
             env.render()
+            input()
         x, y = players[env.current_player].choose_action(env)
         cur_player = env.current_player
         # ---
@@ -140,6 +141,7 @@ class CounterPlayer(Base):
             self.flag = 0
         else:
             self.flag = 1
+        self.oppo_flag = (self.flag +1 ) % 2
         self.attack_action_list = []
         self.win_list = []
         pass
@@ -147,11 +149,12 @@ class CounterPlayer(Base):
     def choose_action(self, env):
         while len(self.win_list) > 0:
             a = self.win_list.pop()
-            xy0, xy1 = a[:]
-            if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
+            x0, y0 = a[0]
+            x1, y1 = a[1]
+            if x0 == x1 and y0 == y1:
                 continue
-            if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
-                return [xy0[0], xy1[0]], [xy0[1], xy1[1]]
+            if env.board[y0][x0] == 2 and env.board[y1][x1] == 2:
+                return [x0, x1], [y0, y1]
 
         partial_env = PartialC6(env, 1)
         x0, y0, ergency = partial_env.act()
@@ -183,11 +186,72 @@ class CounterPlayer(Base):
         if low_threat0 and low_threat1:
             while len(self.attack_action_list) > 0:
                 a = self.attack_action_list.pop()
-                xy0, xy1 = a[:]
-                if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
+                x0, y0 = a[0]
+                x1, y1 = a[1]
+                if x0 == x1 and y0 == y1:
                     continue
-                if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
-                    return [xy0[0], xy1[0]], [xy0[1], xy1[1]]
+                if env.board[y0][x0] == 2 and env.board[y1][x1] == 2:
+                    k = 1
+                    __i = 1
+                    __j = 1
+                    if x0 == x1:
+                        for i in range(1, 6):
+                            if 0<=y0+i<env.dim:
+                                if env.board[y0+i][x0] != self.oppo_flag:
+                                    k+=__i
+                                else:
+                                    __i = 0
+                            if 0<=y0-i<env.dim:
+                                if env.board[y0-i][x0] != self.oppo_flag:
+                                    k+=__j
+                                else:
+                                    __j = 0
+                            if k >= 6:
+                                break
+                    elif y0 == y1:
+                        for i in range(1, 6):
+                            if 0<=x0+i<env.dim:
+                                if env.board[y0][x0+i] != self.oppo_flag:
+                                    k+=__i
+                                else:
+                                    __i = 0
+                            if 0<=x0-i<env.dim:
+                                if env.board[y0][x0-i] != self.oppo_flag:
+                                    k+=__j
+                                else:
+                                    __j = 0
+                            if k >= 6:
+                                break
+                    elif y0-y1 == x0-x1:
+                        for i in range(1, 6):
+                            if 0<=x0+i<env.dim and 0<=y0+i<env.dim:
+                                if env.board[y0+i][x0+i] != self.oppo_flag:
+                                    k+=__i
+                                else:
+                                    __i = 0
+                            if 0<=x0-i<env.dim and 0<=y0-i<env.dim:
+                                if env.board[y0-i][x0-i] != self.oppo_flag:
+                                    k+=__j
+                                else:
+                                    __j = 0
+                            if k >= 6:
+                                break
+                    else:
+                        for i in range(1, 6):
+                            if 0<=x0+i<env.dim and 0<=y0-i<env.dim:
+                                if env.board[y0-i][x0+i] != self.oppo_flag:
+                                    k+=__i
+                                else:
+                                    __i = 0
+                            if 0<=x0-i<env.dim and 0<=y0+i<env.dim:
+                                if env.board[y0+i][x0-i] != self.oppo_flag:
+                                    k+=__j
+                                else:
+                                    __j = 0
+                            if k >= 6:
+                                break
+                    if k >= 6:
+                        return [x0, x1], [y0, y1]
         return ret
 
     def update(self, env, x, y):

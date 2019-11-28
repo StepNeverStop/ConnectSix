@@ -114,14 +114,19 @@ class AttackC6(object):
     def sep_actions(self, l, v, xy, axis):
         a = []
         if len(v) == 2:
-            _min = min(v) - 1
-            _max = max(v) + 1
-            for i in l:
-                for j in l:
-                    if i == j:
-                        continue
-                if _min <= i <= _max and _min <= j <= _max:
-                    a.append([i, j])
+            if abs(v[0]-v[1]) < 3:
+                _min = min(v) - 1
+                _max = max(v) + 1
+                for i in l:
+                    for j in l:
+                        if i == j:
+                            continue
+                    if _min <= i <= _max and _min <= j <= _max:
+                        a.append([i, j])
+            elif abs(v[0]-v[1]) == 3:
+                _min = min(v)
+                _max = max(v)
+                a.append([_min+1, _max-1])
         elif len(v) == 4:
             a.append([l[0], l[1]])
 
