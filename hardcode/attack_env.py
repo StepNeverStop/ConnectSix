@@ -50,8 +50,9 @@ class AttackC6(object):
                         continue
                     if np.where(part == self.flag)[0].shape[0] >= 2:
                         t = np.where(part == 2)[0]
+                        v = np.where(part != 2)[0] + i
                         l = t + i
-                        ll = self.sep_actions(l, self.yy, axis='x')
+                        ll = self.sep_actions(l, v, self.yy, axis='x')
                         if len(t) > 2:
                             al.extend(ll)
                         else:
@@ -64,8 +65,9 @@ class AttackC6(object):
                         continue
                     if np.where(part == self.flag)[0].shape[0] >= 2:
                         t = np.where(part == 2)[0]
+                        v = np.where(part != 2)[0] + i
                         l = t + i
-                        ll = self.sep_actions(l, self.xx, axis='y')
+                        ll = self.sep_actions(l, v, self.xx, axis='y')
                         if len(t) > 2:
                             al.extend(ll)
                         else:
@@ -81,8 +83,9 @@ class AttackC6(object):
                             continue
                         if np.where(part == self.flag)[0].shape[0] >= 2:
                             t = np.where(part == 2)[0]
+                            v = np.where(part != 2)[0] + i
                             l = t + i
-                            ll = self.sep_actions(l, -1, axis='l2r')
+                            ll = self.sep_actions(l, v, -1, axis='l2r')
                             if len(t) > 2:
                                 al.extend(ll)
                             else:
@@ -98,8 +101,9 @@ class AttackC6(object):
                             continue
                         if np.where(part == self.flag)[0].shape[0] >= 2:
                             t = np.where(part == 2)[0]
+                            v = np.where(part != 2)[0] + i
                             l = t + i
-                            ll = self.sep_actions(l, -1, axis='r2l')
+                            ll = self.sep_actions(l, v, -1, axis='r2l')
                             if len(t) > 2:
                                 al.extend(ll)
                             else:
@@ -111,13 +115,26 @@ class AttackC6(object):
             bl = (np.array(bl) + np.array([self.diff_x, self.diff_y])).tolist()
         return al, bl
 
-    def sep_actions(self, l, xy, axis):
+    def sep_actions(self, l, v, xy, axis):
         a = []
-        for i in l:
-            for j in l:
-                if i == j:
-                    continue
-                a.append([i, j])
+        if len(v) == 2:
+            _min = min(v) - 1
+            _max = max(v) + 1
+            for i in l:
+                for j in l:
+                    if i == j:
+                        continue
+                if _min <= i <= _max and _min <= j <= _max:
+                    a.append([i, j])
+        # elif len(v) == 3:
+        #     for i in l:
+        #         for j in l:
+        #             if i == j:
+        #                 continue
+        #             a.append([i, j])
+        elif len(v) == 4:
+            a.append([l[0], l[1]])
+
         b = []
         if axis == 'x':
             for i in a:

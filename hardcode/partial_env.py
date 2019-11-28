@@ -165,7 +165,7 @@ class PartialC6(object):
         nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
         self.action_index = list(nums.keys())
         self.oppo_nums = list(nums.values())
-        low_threat = True if self.oppo_nums[0] < 3 else False
+        self.low_threat = True if self.oppo_nums[0] <= 3 else False
         self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
 
         ergency_idx = []
@@ -180,19 +180,19 @@ class PartialC6(object):
                         self.next_action = self.actions[7 - a_idx]
                         self.actions[a_idx] = None
                         self.actions[7 - a_idx] = None
-                        return self.available_actions[_b], True, low_threat
+                        return self.available_actions[_b], True
         if len(ergency_idx) >= 2:
             _a = self.actions[ergency_idx[0]]
             _b = _a[0] + _a[1] * self.dim
             self.next_action = self.actions[ergency_idx[1]]
             self.actions[ergency_idx[0]] = None
             self.actions[ergency_idx[1]] = None
-            return self.available_actions[_b], True, low_threat
+            return self.available_actions[_b], True
         elif len(ergency_idx) == 1:
             _a = self.actions[ergency_idx[0]]
             _b = _a[0] + _a[1] * self.dim
             self.actions[ergency_idx[0]] = None
-            return self.available_actions[_b], False, low_threat
+            return self.available_actions[_b], False
 
         for index, value in enumerate(self.oppo_nums):
             a_idx = self.action_index[index]
@@ -202,14 +202,14 @@ class PartialC6(object):
                 _b = _a[0] + _a[1] * self.dim
                 if value >= 4:
                     if self.actions[7 - a_idx] is None or self.jumps[a_idx]:
-                        return self.available_actions[_b], False, low_threat
+                        return self.available_actions[_b], False
                     else:
                         self.next_action = self.actions[7 - a_idx]
                         self.actions[7 - a_idx] = None
-                        return self.available_actions[_b], True, low_threat
+                        return self.available_actions[_b], True
                 else:
-                    return self.available_actions[_b], False, low_threat
-        return random.sample(self.env.available_actions, 1)[0], False, low_threat
+                    return self.available_actions[_b], False
+        return random.sample(self.env.available_actions, 1)[0], False
 
     def get_next(self):
         if self.next_action is not None:
@@ -223,3 +223,6 @@ class PartialC6(object):
                 _b = _a[0] + _a[1] * self.dim
                 return self.available_actions[_b]
         return random.sample(self.env.available_actions, 1)[0]
+
+    def get_low_threat(self):
+        return self.low_threat

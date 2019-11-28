@@ -15,8 +15,16 @@ flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
 flags.DEFINE_boolean('render', False, '是否渲染')
-flags.DEFINE_string('ip', '58.199.162.110', '服务器IP')
-flags.DEFINE_string('port', '8080', '端口')
+flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
+flags.DEFINE_string('port', '8080', '指定服务器端口号')
+flags.DEFINE_enum('color', 'n', ['n', 'b', 'w'],
+                  'n: 随机, '
+                  'b: 黑子, '
+                  'w: 白子')
+flags.DEFINE_enum('op', 'random', ['random', 'human', 'self'],
+                  'random: 随机策略, '
+                  'human: 跟别人对战,'
+                  'self: 自我对弈')
 
 
 class Base:
@@ -35,23 +43,35 @@ def main(_argv):
     box_size = FLAGS.box_size
     ip = FLAGS.ip
     port = FLAGS.port
+    color = FLAGS.color
+    op = FLAG.op
     env = Connect6(dim=board_size, box_size=box_size)
     count = 0
     tie = 0
     for i in range(FLAGS.num):
-        a = random.random()
-        if a > 0.5:
-            is_black = False    # 极致防御后手
+        if color == 'n':
+            a = random.random()
+            if a > 0.5:
+                is_black = False    # 极致防御后手
+            else:
+                is_black = True     # 极致防御先手
+        elif color == 'b':
+            is_black = True
         else:
-            is_black = True     # 极致防御先手
-        if is_black:
-            print('极致防御 ----> 黑棋|先手')
-        else:
-            print('极致防御 ----> 白棋|后手')
-        player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
+            is_black = False
+
         player1 = CounterPlayer(is_black=is_black)   # 极致防御策略
-        # player2 = RandomPlayer()
-        # player2 = CounterPlayer(is_black=False if is_black else True)
+
+        if op == 'random':
+            player2 = RandomPlayer()
+        elif op == 'human':
+            if is_black:
+                print('自在极意 ----> 黑棋|先手')
+            else:
+                print('自在极意 ----> 白棋|后手')
+            player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
+        elif op == 'self':
+            player2 = CounterPlayer(is_black=False if is_black else True)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
         print(f'第{i:4d}局结束, {ret}')
         if ret:
@@ -136,7 +156,8 @@ class CounterPlayer(Base):
                 return xx, yy
 
         partial_env = PartialC6(env, 1)
-        idx0, ergency, low_threat0 = partial_env.act()
+        idx0, ergency = partial_env.act()
+        low_threat0 = partial_env.get_low_threat()
         x0, y0 = int(idx0 % env.dim), int(idx0 // env.dim)
         if ergency:  # 如果形势危急
             if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
@@ -147,7 +168,8 @@ class CounterPlayer(Base):
                 ret = [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
         else:
             partial_env = PartialC6(env, 0)
-            idx1, ergency, low_threat1 = partial_env.act()
+            idx1, ergency = partial_env.act()
+            low_threat1 = partial_env.get_low_threat()
             x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
             if ergency:  # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
