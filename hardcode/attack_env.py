@@ -49,10 +49,9 @@ class AttackC6(object):
                     if (part == self.oppo_flag).any():
                         continue
                     if np.where(part == self.flag)[0].shape[0] >= 2:
-                        t = np.where(part == 2)[0]
+                        t = np.where(part == 2)[0] + i
                         v = np.where(part != 2)[0] + i
-                        l = t + i
-                        ll = self.sep_actions(l, v, self.yy, axis='x')
+                        ll = self.sep_actions(t, v, self.yy, axis='x')
                         if len(t) > 2:
                             al.extend(ll)
                         else:
@@ -64,10 +63,9 @@ class AttackC6(object):
                     if (part == self.oppo_flag).any():
                         continue
                     if np.where(part == self.flag)[0].shape[0] >= 2:
-                        t = np.where(part == 2)[0]
+                        t = np.where(part == 2)[0] + i
                         v = np.where(part != 2)[0] + i
-                        l = t + i
-                        ll = self.sep_actions(l, v, self.xx, axis='y')
+                        ll = self.sep_actions(t, v, self.xx, axis='y')
                         if len(t) > 2:
                             al.extend(ll)
                         else:
@@ -82,10 +80,9 @@ class AttackC6(object):
                         if (part == self.oppo_flag).any():
                             continue
                         if np.where(part == self.flag)[0].shape[0] >= 2:
-                            t = np.where(part == 2)[0]
+                            t = np.where(part == 2)[0] + i
                             v = np.where(part != 2)[0] + i
-                            l = t + i
-                            ll = self.sep_actions(l, v, -1, axis='l2r')
+                            ll = self.sep_actions(t, v, -1, axis='l2r')
                             if len(t) > 2:
                                 al.extend(ll)
                             else:
@@ -100,10 +97,9 @@ class AttackC6(object):
                         if (part == self.oppo_flag).any():
                             continue
                         if np.where(part == self.flag)[0].shape[0] >= 2:
-                            t = np.where(part == 2)[0]
+                            t = np.where(part == 2)[0] + i
                             v = np.where(part != 2)[0] + i
-                            l = t + i
-                            ll = self.sep_actions(l, v, -1, axis='r2l')
+                            ll = self.sep_actions(t, v, -1, axis='r2l')
                             if len(t) > 2:
                                 al.extend(ll)
                             else:
@@ -126,12 +122,6 @@ class AttackC6(object):
                         continue
                 if _min <= i <= _max and _min <= j <= _max:
                     a.append([i, j])
-        # elif len(v) == 3:
-        #     for i in l:
-        #         for j in l:
-        #             if i == j:
-        #                 continue
-        #             a.append([i, j])
         elif len(v) == 4:
             a.append([l[0], l[1]])
 
