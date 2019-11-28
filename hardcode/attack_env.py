@@ -72,7 +72,7 @@ class AttackC6(object):
         if -6 < _diff < 6:
             diag = self.board.diagonal(_diff)
             for i in range(6 - abs(_diff)):
-                part = self.board[i:i + 6]
+                part = diag[i:i + 6]
                 if (part == self.oppo_flag).any():
                     continue
                 if np.where(part == self.flag)[0].shape[0] >= 2:
@@ -88,7 +88,7 @@ class AttackC6(object):
         if -6 < _diff < 6:
             diag = np.fliplr(self.board).diagonal(10 - self.xx - self.yy)
             for i in range(6 - abs(_diff)):
-                part = self.board[i:i + 6]
+                part = diag[i:i + 6]
                 if (part == self.oppo_flag).any():
                     continue
                 if np.where(part == self.flag)[0].shape[0] >= 2:

@@ -19,6 +19,17 @@ flags.DEFINE_string('ip', '58.199.162.110', '服务器IP')
 flags.DEFINE_string('port', '8080', '端口')
 
 
+class Base:
+    def __init__(self):
+        pass
+
+    def move(self, *args, **kwargs):
+        pass
+
+    def update(self, *args, **kwargs):
+        pass
+
+
 def main(_argv):
     board_size = FLAGS.board_size
     box_size = FLAGS.box_size
@@ -63,6 +74,7 @@ def battle_loop(env, player1, player2=None, is_black=True):
         if FLAGS.render:
             env.render()
         x, y = players[env.current_player].choose_action(env)
+        cur_player = env.current_player
         # ---
         if is_black:
             if env.current_player == 0:
@@ -72,6 +84,7 @@ def battle_loop(env, player1, player2=None, is_black=True):
                 players[0].move(x, y)
         # ---
         env.step(x[0], y[0])
+        players[cur_player].update(env, x[0], y[0])
         end, winner = env.is_over()
         if end:
             if FLAGS.render:
@@ -81,6 +94,7 @@ def battle_loop(env, player1, player2=None, is_black=True):
             env.step_again()
         else:
             env.step(x[-1], y[-1])
+            players[cur_player].update(env, x[-1], y[-1])
         end, winner = env.is_over()
         if end:
             if FLAGS.render:
@@ -98,8 +112,9 @@ def battle_loop(env, player1, player2=None, is_black=True):
             return True, winner
 
 
-class CounterPlayer:
+class CounterPlayer(Base):
     def __init__(self, **kwargs):
+        super().__init__()
         is_black = kwargs.get('is_black')
         if is_black:
             self.flag = 0
@@ -157,30 +172,20 @@ class CounterPlayer:
                 if xy0[0] == xy1[0] and xy0[1] == xy1[1]:
                     continue
                 if env.board[xy0[1]][xy0[0]] == 2 and env.board[xy1[1]][xy1[0]] == 2:
-                    aaaa = AttackC6(env, xy0[0], xy0[1], self.flag).get_actions()
-                    self.attack_action_list.extend(aaaa[0])
-                    self.win_list.extend(aaaa[1])
-                    aaaa = AttackC6(env, xy1[0], xy1[1], self.flag).get_actions()
-                    self.attack_action_list.extend(aaaa[0])
-                    self.win_list.extend(aaaa[1])
                     xx = [xy0[0], xy1[0]]
                     yy = [xy0[1], xy1[1]]
                     return xx, yy
-
-        aaaa = AttackC6(env, ret[0][0], ret[1][0], self.flag).get_actions()
-        self.attack_action_list.extend(aaaa[0])
-        self.win_list.extend(aaaa[1])
-        aaaa = AttackC6(env, ret[0][1], ret[1][1], self.flag).get_actions()
-        self.attack_action_list.extend(aaaa[0])
-        self.win_list.extend(aaaa[1])
         return ret
 
-    def move(self, *args, **kwargs):
-        pass
+    def update(self, env, x, y):
+        aaaa = AttackC6(env, x, y, self.flag).get_actions()
+        self.attack_action_list.extend(aaaa[0])
+        self.win_list.extend(aaaa[1])
 
 
-class RandomPlayer:
+class RandomPlayer(Base):
     def __init__(self):
+        super().__init__()
         pass
 
     def choose_action(self, env, *args, **kwargs):
@@ -197,8 +202,9 @@ class RandomPlayer:
         pass
 
 
-class HumanPlayer:
+class HumanPlayer(Base):
     def __init__(self):
+        super().__init__()
         pass
 
     def choose_action(self, env, *args, **kwargs):
@@ -222,8 +228,9 @@ class HumanPlayer:
         pass
 
 
-class TestPlayer:
+class TestPlayer(Base):
     def __init__(self, ip='127.0.0.1', port=8080, is_black=True):
+        super().__init__()
         self.url = f'http://{ip}:{port}'
         self.color = 'BLACK' if is_black else 'WHITE'
         r = requests.post(f'{self.url}/login', json={
