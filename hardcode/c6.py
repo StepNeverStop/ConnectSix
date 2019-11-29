@@ -1,4 +1,5 @@
 import os
+import random
 import numpy as np
 import copy
 
@@ -188,6 +189,171 @@ class Connect6(object):
             self.round += 1
             self.move_step = 0
             self.current_player = (self.current_player + 1) % 2
+
+    def judge(self, x, y, flag, oppo_flag, num=3):
+        '''
+        x, y: 将要落子的点，还没落子
+        flag: 下棋方的标志
+        oppo_flag: 对手的标志
+        '''
+        if self.board[y][x] != 2:
+            return False
+
+        ret = [True] * 4
+        i = 0
+        for _dir, dir_func in self.directions.items():
+            i += 1
+            if i > 4:
+                break
+            nx, ny = dir_func(x, y)
+            if self.is_outta_range(nx, ny):  # 判断x y是不是边界点
+                continue
+            while self.board[ny][nx] != oppo_flag:
+                nx, ny = dir_func(nx, ny)
+                if self.is_outta_range(nx, ny):
+                    break
+            count = 0
+            counter_oppo = False
+            reverse_dir_func = reverse_of(dir_func)
+            for _ in range(6):
+                nx, ny = reverse_dir_func(nx, ny)
+                if self.is_outta_range(nx, ny):  # 判断x y是不是边界点
+                    break
+                if self.board[ny][nx] == flag:
+                    count += 1
+                if self.board[ny][nx] == oppo_flag:
+                    counter_oppo = True
+                    break
+            if counter_oppo or count < num:   # 3 判断4子， 2 判断3子， 1， 判断2子
+                ret[i - 1] = False
+        return any(ret)
+
+    def get3(self, x, y, oppo_flag):
+        '''形成连着3个子
+        '''
+        order = [0, 1, 2, 3]
+        random.shuffle(order)
+        for k in order:
+            count = 1
+            a = []
+            if k == 0:
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x - 1
+                    if self.is_out(_x):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x + 1
+                    if self.is_out(_x):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                if count >= 6 and len(a) >= 2:
+                    return a[0:2]
+            if k == 1:
+                _x, _y = x, y
+                while count < 6:
+                    _y = _y - 1
+                    if self.is_out(_y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                _x, _y = x, y
+                while count < 6:
+                    _y = _y + 1
+                    if self.is_out(_y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                if count >= 6 and len(a) >= 2:
+                    return a[0:2]
+            if k == 2:
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x - 1
+                    _y = _y - 1
+                    if self.is_outta_range(_x, _y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x + 1
+                    _y = _y + 1
+                    if self.is_outta_range(_x, _y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                if count >= 6 and len(a) >= 2:
+                    return a[0:2]
+            if k == 3:
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x - 1
+                    _y = _y + 1
+                    if self.is_outta_range(_x, _y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                _x, _y = x, y
+                while count < 6:
+                    _x = _x + 1
+                    _y = _y - 1
+                    if self.is_outta_range(_x, _y):
+                        break
+                    _flag = self.board[_y][_x]
+                    if _flag == oppo_flag:
+                        break
+                    else:
+                        count += 1
+                        if _flag == 2:
+                            a.append([_x, _y])
+                if count >= 6 and len(a) >= 2:
+                    return a[0:2]
+
+        return None
+
+    def is_out(self, x):
+        return x < 0 or x >= self.dim
+
     '''
     以下为游戏规则逻辑，不需要修改
     '''

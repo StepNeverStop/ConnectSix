@@ -29,12 +29,47 @@ class AttackC6(object):
             'down': lambda x, y: (x, y - 1),
         }
         self.board, self.xx, self.yy = env.get_attack_partial_env(x, y)
-        self.board[self.yy, self.xx] = self.flag
+        # self.board[self.yy, self.xx] = self.flag
         self.diff_x = self.x - self.xx
         self.diff_y = self.y - self.yy
 
     def is_outta_range(self, x, y):
         return x < 0 or x >= self.dim or y < 0 or y >= self.dim
+
+    def sigle(self, num=3):
+        a = []
+        i = 0
+        for _dir, dir_func in self.directions.items():
+            i += 1
+            if i > 4:
+                break
+            b = []
+            count = 1
+            nx0, ny0 = dir_func(self.xx, self.yy)
+            if not self.is_outta_range(nx0, ny0):  # 判断x y是不是边界点
+                while self.board[ny0][nx0] == self.flag:
+                    count += 1
+                    nx0, ny0 = dir_func(nx0, ny0)
+                    if self.is_outta_range(nx0, ny0):
+                        break
+                if not self.is_outta_range(nx0, ny0) and self.board[ny0][nx0] == 2:
+                    b.append([nx0, ny0])
+
+            reverse_dir_func = reverse_of(dir_func)
+            nx1, ny1 = reverse_dir_func(self.xx, self.yy)
+            if not self.is_outta_range(nx1, ny1):  # 判断x y是不是边界点
+                while self.board[ny1][nx1] == self.flag:
+                    count += 1
+                    nx1, ny1 = reverse_dir_func(nx1, ny1)
+                    if self.is_outta_range(nx1, ny1):
+                        break
+                if not self.is_outta_range(nx1, ny1) and self.board[ny1][nx1] == 2:
+                    b.append([nx1, ny1])
+            if count >= num:
+                a.extend(b)
+        if len(a) != 0:
+            a = (np.array(a) + np.array([self.diff_x, self.diff_y])).tolist()
+        return a
 
     def get_actions(self):
         al = []  # 连456个
@@ -97,8 +132,8 @@ class AttackC6(object):
                         if (part == self.oppo_flag).any():
                             continue
                         if np.where(part == self.flag)[0].shape[0] >= 2:
-                            t = np.where(part == 2)[0] + i
-                            v = np.where(part != 2)[0] + i
+                            t = np.where(part == 2)[0] + i  # 空位
+                            v = np.where(part != 2)[0] + i  # 已落子己方位置
                             ll = self.sep_actions(t, v, -1, axis='r2l')
                             if len(t) > 2:
                                 al.extend(ll)
@@ -111,24 +146,33 @@ class AttackC6(object):
             bl = (np.array(bl) + np.array([self.diff_x, self.diff_y])).tolist()
         return al, bl
 
-    def sep_actions(self, l, v, xy, axis):
+    def sep_actions(self, t, v, xy, axis):
         a = []
         if len(v) == 2:
-            if abs(v[0]-v[1]) < 3:
-                _min = min(v) - 1
-                _max = max(v) + 1
-                for i in l:
-                    for j in l:
-                        if i == j:
-                            continue
-                    if _min <= i <= _max and _min <= j <= _max:
-                        a.append([i, j])
-            elif abs(v[0]-v[1]) == 3:
+            if abs(v[0] - v[1]) == 1:
                 _min = min(v)
                 _max = max(v)
-                a.append([_min+1, _max-1])
+                for i in t:
+                    for j in t:
+                        if i == j:
+                            continue
+                        if (i == _min - 1 and j == _min - 2) or (i == _max + 1 and j == _max + 2):
+                            a.append([i, j])
+            if abs(v[0] - v[1]) == 2:
+                _min = min(v) - 1
+                _max = max(v) + 1
+                for i in t:
+                    for j in t:
+                        if i == j:
+                            continue
+                        if _min <= i <= _max and _min <= j <= _max and abs(i - j) <= 2:
+                            a.append([i, j])
+            elif abs(v[0] - v[1]) == 3:
+                _min = min(v)
+                _max = max(v)
+                a.append([_min + 1, _max - 1])
         elif len(v) == 4:
-            a.append([l[0], l[1]])
+            a.append([t[0], t[1]])
 
         b = []
         if axis == 'x':

@@ -14,6 +14,7 @@ from attack_env import AttackC6
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
+flags.DEFINE_integer('threat', 4, '指定几子相连算威胁，需要围堵')
 flags.DEFINE_boolean('render', False, '是否渲染')
 flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
 flags.DEFINE_string('port', '8080', '指定服务器端口号')
@@ -45,6 +46,7 @@ def main(_argv):
     port = FLAGS.port
     color = FLAGS.color
     op = FLAGS.op
+    threat = FLAGS.threat
     env = Connect6(dim=board_size, box_size=box_size)
     count = 0
     tie = 0
@@ -60,25 +62,25 @@ def main(_argv):
         else:
             is_black = False
 
-        player1 = CounterPlayer(is_black=is_black)   # 极致防御策略
+        player1 = CounterPlayer(is_black=is_black, threat=threat)   # 极致防御策略
 
         if op == 'random':
             player2 = RandomPlayer()
         elif op == 'human':
             if is_black:
-                print('自在极意 ----> 黑棋|先手')
+                logging.info('自在极意 ----> 黑棋|先手')
             else:
-                print('自在极意 ----> 白棋|后手')
+                logging.info('自在极意 ----> 白棋|后手')
             player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         elif op == 'self':
-            player2 = CounterPlayer(is_black=False if is_black else True)
+            player2 = CounterPlayer(is_black=False if is_black else True, threat=threat)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
-        print(f'第{i:4d}局结束, {ret}')
+        logging.info(f'第{i:4d}局结束, {ret}')
         if ret:
             count += 1
         elif winner == -1:
             tie += 1
-    print(f'对局{FLAGS.num}, 胜场{count}, 平局{tie}, 胜率为: {count/FLAGS.num:.2%}')
+    logging.info(f'对局{FLAGS.num}, 胜场{count}, 平局{tie}, 胜率为: {count/FLAGS.num:.2%}')
     pass
 
 
@@ -105,16 +107,17 @@ def battle_loop(env, player1, player2=None, is_black=True):
                 players[0].move(x, y)
         # ---
         env.step(x[0], y[0])
-        players[cur_player].update(env, x[0], y[0])
         end, winner = env.is_over()
         if end:
             if FLAGS.render:
                 env.render()
             break
         if len(x) == 1 or (x[0] == x[1] and y[0] == y[1]):
+            players[cur_player].update(env, x[0], y[0])
             env.step_again()
         else:
             env.step(x[-1], y[-1])
+            players[cur_player].update(env, x[0], y[0])
             players[cur_player].update(env, x[-1], y[-1])
         end, winner = env.is_over()
         if end:
@@ -137,16 +140,22 @@ class CounterPlayer(Base):
     def __init__(self, **kwargs):
         super().__init__()
         is_black = kwargs.get('is_black')
+        self.threat = kwargs.get('threat', 4)
         if is_black:
             self.flag = 0
         else:
             self.flag = 1
-        self.oppo_flag = (self.flag +1 ) % 2
+        self.oppo_flag = (self.flag + 1) % 2
         self.attack_action_list = []
+        self.attack4_list = []
+        self.attack3_list = []
+        self.attack2_list = []
         self.win_list = []
+        self.actions = []
         pass
 
     def choose_action(self, env):
+        # 首先， 能赢肯定要选择可以赢的落子
         while len(self.win_list) > 0:
             a = self.win_list.pop()
             x0, y0 = a[0]
@@ -156,108 +165,176 @@ class CounterPlayer(Base):
             if env.board[y0][x0] == 2 and env.board[y1][x1] == 2:
                 return [x0, x1], [y0, y1]
 
-        partial_env = PartialC6(env, 1)
-        x0, y0, ergency = partial_env.act()
-        low_threat0 = partial_env.get_low_threat()
+        # 其次， 如果对方有连续的四个子，那么肯定需要选择围堵左右两端
+        partial_env0 = PartialC6(env, 1, threat=self.threat)
+        x0, y0, ergency = partial_env0.act()
+        low_threat0 = partial_env0.get_low_threat()
         if ergency:  # 如果形势危急
             if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
                 return [x0], [y0]
             else:
-                x1, y1 = partial_env.get_next()
-                ret = [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
+                x1, y1 = partial_env0.get_next()
+                return [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
         else:
-            partial_env = PartialC6(env, 0)
-            x1, y1, ergency = partial_env.act()
-            low_threat1 = partial_env.get_low_threat()
+            partial_env1 = PartialC6(env, 0, threat=self.threat)
+            x1, y1, ergency = partial_env1.act()
+            low_threat1 = partial_env1.get_low_threat()
             if ergency:  # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
                     return [x1], [y1]
                 else:
-                    x2, y2 = partial_env.get_next()
-                    ret = [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
+                    x2, y2 = partial_env1.get_next()
+                    return [x1, x2], [y1, y2]   # 直接选择对对手第二个落子两端围堵
             else:
-                if env.move_step == 1:
-                    return [x0], [y0]
-                else:
-                    if x0 == x1 and y0 == y1:
-                        x1, y1 = partial_env.get_next()
-                    ret = [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
-
-        if low_threat0 and low_threat1:
-            while len(self.attack_action_list) > 0:
-                a = self.attack_action_list.pop()
-                x0, y0 = a[0]
-                x1, y1 = a[1]
-                if x0 == x1 and y0 == y1:
-                    continue
-                if env.board[y0][x0] == 2 and env.board[y1][x1] == 2:
-                    k = 1
-                    __i = 1
-                    __j = 1
-                    if x0 == x1:
-                        for i in range(1, 6):
-                            if 0<=y0+i<env.dim:
-                                if env.board[y0+i][x0] != self.oppo_flag:
-                                    k+=__i
-                                else:
-                                    __i = 0
-                            if 0<=y0-i<env.dim:
-                                if env.board[y0-i][x0] != self.oppo_flag:
-                                    k+=__j
-                                else:
-                                    __j = 0
-                            if k >= 6:
-                                break
-                    elif y0 == y1:
-                        for i in range(1, 6):
-                            if 0<=x0+i<env.dim:
-                                if env.board[y0][x0+i] != self.oppo_flag:
-                                    k+=__i
-                                else:
-                                    __i = 0
-                            if 0<=x0-i<env.dim:
-                                if env.board[y0][x0-i] != self.oppo_flag:
-                                    k+=__j
-                                else:
-                                    __j = 0
-                            if k >= 6:
-                                break
-                    elif y0-y1 == x0-x1:
-                        for i in range(1, 6):
-                            if 0<=x0+i<env.dim and 0<=y0+i<env.dim:
-                                if env.board[y0+i][x0+i] != self.oppo_flag:
-                                    k+=__i
-                                else:
-                                    __i = 0
-                            if 0<=x0-i<env.dim and 0<=y0-i<env.dim:
-                                if env.board[y0-i][x0-i] != self.oppo_flag:
-                                    k+=__j
-                                else:
-                                    __j = 0
-                            if k >= 6:
-                                break
+                # 情况不危机
+                ret = [x0, x1], [y0, y1]   # 如果形势不危急，那么我方两子各防守对方一子
+        # 然后
+        # 如果对方无四子的， 那么我方选择两步进攻的棋子，尽可能凑成四个子
+        # 如果对方有一步为四子的，且一端已经被堵住，那么我方将围堵另一端，并选择一步进攻性落子，尽可能形成四子
+        # 如果对方两步都为四子，且都是一端被堵住，那么我方两次落子应该都是围堵
+        if env.move_step == 1:
+            if low_threat0 and low_threat1:
+                while len(self.attack4_list) > 0:
+                    x, y = self.attack4_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag):
+                        return [x], [y]
+            elif low_threat0:
+                return [x1], [y1]
+            elif low_threat1:
+                return [x0], [y0]
+            return [x0], [y0]
+        else:
+            if low_threat0 and low_threat1:
+                while len(self.attack_action_list) > 0:  # 进攻两步 形成四子
+                    a = self.attack_action_list.pop()
+                    _x0, _y0 = a[0]
+                    _x1, _y1 = a[1]
+                    if _x0 == _x1 and _y0 == _y1:
+                        continue
+                    if env.board[_y0][_x0] == 2 and env.board[_y1][_x1] == 2:
+                        k = 1
+                        __i = 1
+                        __j = 1
+                        if _x0 == _x1:
+                            for i in range(1, 6):
+                                if 0 <= _y0 + i < env.dim:
+                                    if env.board[_y0 + i][_x0] != self.oppo_flag:
+                                        k += __i
+                                    else:
+                                        __i = 0
+                                if 0 <= _y0 - i < env.dim:
+                                    if env.board[_y0 - i][_x0] != self.oppo_flag:
+                                        k += __j
+                                    else:
+                                        __j = 0
+                                if k >= 6:
+                                    break
+                        elif _y0 == _y1:
+                            for i in range(1, 6):
+                                if 0 <= _x0 + i < env.dim:
+                                    if env.board[_y0][_x0 + i] != self.oppo_flag:
+                                        k += __i
+                                    else:
+                                        __i = 0
+                                if 0 <= _x0 - i < env.dim:
+                                    if env.board[_y0][_x0 - i] != self.oppo_flag:
+                                        k += __j
+                                    else:
+                                        __j = 0
+                                if k >= 6:
+                                    break
+                        elif _y0 - _y1 == _x0 - _x1:
+                            for i in range(1, 6):
+                                if 0 <= _x0 + i < env.dim and 0 <= _y0 + i < env.dim:
+                                    if env.board[_y0 + i][_x0 + i] != self.oppo_flag:
+                                        k += __i
+                                    else:
+                                        __i = 0
+                                if 0 <= _x0 - i < env.dim and 0 <= _y0 - i < env.dim:
+                                    if env.board[_y0 - i][_x0 - i] != self.oppo_flag:
+                                        k += __j
+                                    else:
+                                        __j = 0
+                                if k >= 6:
+                                    break
+                        else:
+                            for i in range(1, 6):
+                                if 0 <= _x0 + i < env.dim and 0 <= _y0 - i < env.dim:
+                                    if env.board[_y0 - i][_x0 + i] != self.oppo_flag:
+                                        k += __i
+                                    else:
+                                        __i = 0
+                                if 0 <= _x0 - i < env.dim and 0 <= _y0 + i < env.dim:
+                                    if env.board[_y0 + i][_x0 - i] != self.oppo_flag:
+                                        k += __j
+                                    else:
+                                        __j = 0
+                                if k >= 6:
+                                    break
+                        if k >= 6:
+                            return [_x0, _x1], [_y0, _y1]
+                for a in self.actions:
+                    act3 = env.get3(a[0], a[1], self.oppo_flag)
+                    if act3 is not None:
+                        xx = [act3[0][0], act3[1][0]]
+                        yy = [act3[0][1], act3[1][1]]
+                        return [xx, yy]
                     else:
-                        for i in range(1, 6):
-                            if 0<=x0+i<env.dim and 0<=y0-i<env.dim:
-                                if env.board[y0-i][x0+i] != self.oppo_flag:
-                                    k+=__i
-                                else:
-                                    __i = 0
-                            if 0<=x0-i<env.dim and 0<=y0+i<env.dim:
-                                if env.board[y0+i][x0-i] != self.oppo_flag:
-                                    k+=__j
-                                else:
-                                    __j = 0
-                            if k >= 6:
-                                break
-                    if k >= 6:
-                        return [x0, x1], [y0, y1]
-        return ret
+                        self.actions.remove(a)
+            elif low_threat0:
+                while len(self.attack4_list) > 0:
+                    x, y = self.attack4_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                        return [x, x1], [y, y1]
+                while len(self.attack3_list) > 0:
+                    x, y = self.attack3_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 2):
+                        return [x, x1], [y, y1]
+                while len(self.attack2_list) > 0:
+                    x, y = self.attack2_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 1):
+                        return [x, x1], [y, y1]
+            elif low_threat1:
+                while len(self.attack4_list) > 0:
+                    x, y = self.attack4_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                        return [x0, x], [y0, y]
+                while len(self.attack3_list) > 0:
+                    x, y = self.attack3_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 2):
+                        return [x0, x], [y0, y]
+                while len(self.attack2_list) > 0:
+                    x, y = self.attack2_list.pop()
+                    if env.judge(x, y, self.flag, self.oppo_flag, 1):
+                        return [x0, x], [y0, y]
+            else:
+                [x0, x1], [y0, y1] = ret
+                if x0 == x1 and y0 == y1:
+                    while len(self.attack4_list) > 0:
+                        x, y = self.attack4_list.pop()
+                        if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                            return [x0, x], [y0, y]
+                    while len(self.attack3_list) > 0:
+                        x, y = self.attack3_list.pop()
+                        if env.judge(x, y, self.flag, self.oppo_flag, 2):
+                            return [x0, x], [y0, y]
+                    while len(self.attack2_list) > 0:
+                        x, y = self.attack2_list.pop()
+                        if env.judge(x, y, self.flag, self.oppo_flag, 1):
+                            return [x0, x], [y0, y]
+                    x1, y1 = partial_env1.get_next()
+                    return [x0, x1], [y0, y1]
+            return ret
 
     def update(self, env, x, y):
-        aaaa = AttackC6(env, x, y, self.flag).get_actions()
+        self.actions.append([x, y])
+        _env = AttackC6(env, x, y, self.flag)
+        aaaa = _env.get_actions()
         self.attack_action_list.extend(aaaa[0])
         self.win_list.extend(aaaa[1])
+        self.attack4_list.extend(_env.sigle(3))
+        self.attack3_list.extend(_env.sigle(2))
+        self.attack2_list.extend(_env.sigle(1))
 
 
 class RandomPlayer(Base):
@@ -286,7 +363,7 @@ class HumanPlayer(Base):
 
     def choose_action(self, env, *args, **kwargs):
         x, y = [], []
-        print('请输入第一个落子点的坐标: ')
+        logging.info('请输入第一个落子点的坐标: ')
         info = input()
         _x, _y = info.split('-')
         x.append(int(_x))
@@ -294,7 +371,7 @@ class HumanPlayer(Base):
         if env.move_step == 1:
             return x, y
         else:
-            print('请输入第二个落子点的坐标: ')
+            logging.info('请输入第二个落子点的坐标: ')
             info = input()
             _x, _y = info.split('-')
             x.append(int(_x))

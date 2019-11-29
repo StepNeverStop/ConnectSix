@@ -11,9 +11,10 @@ def reverse_of(dir_func):
 
 
 class PartialC6(object):
-    def __init__(self, env, index=0):
+    def __init__(self, env, index=0, threat=4):
         self.env = env
         self.dim = env.box_size               # 棋盘格维度
+        self.threat = threat
         self.directions = {
             'up': lambda x, y: (x, y + 1),
             'right': lambda x, y: (x + 1, y),
@@ -162,11 +163,12 @@ class PartialC6(object):
 
     def act(self):
         self.get_8actions()
+
         def func():
             nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
             self.action_index = list(nums.keys())
             self.oppo_nums = list(nums.values())
-            self.low_threat = True if self.oppo_nums[0] <= 3 else False
+            self.low_threat = True if self.oppo_nums[0] < self.threat else False
             self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
 
             ergency_idx = []
@@ -181,14 +183,14 @@ class PartialC6(object):
                             self.next_action = self.actions[7 - a_idx]
                             self.actions[a_idx] = None
                             self.actions[7 - a_idx] = None
-                            return self.available_actions[_b], True # 对方连着四个子， 形式危机
+                            return self.available_actions[_b], True  # 对方连着四个子， 形式危机
             if len(ergency_idx) >= 2:
                 _a = self.actions[ergency_idx[0]]
                 _b = _a[0] + _a[1] * self.dim
                 self.next_action = self.actions[ergency_idx[1]]
                 self.actions[ergency_idx[0]] = None
                 self.actions[ergency_idx[1]] = None
-                return self.available_actions[_b], True # 对方有两个4子的，形式危机
+                return self.available_actions[_b], True  # 对方有两个4子的，形式危机
             elif len(ergency_idx) == 1:
                 _a = self.actions[ergency_idx[0]]
                 _b = _a[0] + _a[1] * self.dim
