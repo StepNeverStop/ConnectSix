@@ -155,6 +155,7 @@ class CounterPlayer(Base):
         pass
 
     def choose_action(self, env):
+        random.shuffle(self.win_list)
         # 首先， 能赢肯定要选择可以赢的落子
         while len(self.win_list) > 0:
             a = self.win_list.pop()
@@ -165,6 +166,11 @@ class CounterPlayer(Base):
             if env.board[y0][x0] == 2 and env.board[y1][x1] == 2:
                 return [x0, x1], [y0, y1]
 
+        random.shuffle(self.attack_action_list)
+        random.shuffle(self.attack4_list)
+        random.shuffle(self.attack3_list)
+        random.shuffle(self.attack2_list)
+        random.shuffle(self.actions)
         # 其次， 如果对方有连续的四个子，那么肯定需要选择围堵左右两端
         partial_env0 = PartialC6(env, 1, threat=self.threat)
         x0, y0, ergency = partial_env0.act()
@@ -205,6 +211,9 @@ class CounterPlayer(Base):
             return [x0], [y0]
         else:
             if low_threat0 and low_threat1:
+                _r = self.attack2(env)
+                if _r is not None:
+                    return _r
                 while len(self.attack_action_list) > 0:  # 进攻两步 形成四子
                     a = self.attack_action_list.pop()
                     _x0, _y0 = a[0]
@@ -276,50 +285,36 @@ class CounterPlayer(Base):
                 for a in self.actions:
                     act3 = env.get3(a[0], a[1], self.oppo_flag)
                     if act3 is not None:
-                        xx = [act3[0][0], act3[1][0]]
-                        yy = [act3[0][1], act3[1][1]]
-                        return [xx, yy]
+                        return list(zip(*act3))
                     else:
                         self.actions.remove(a)
             elif low_threat0:
-                while len(self.attack4_list) > 0:
-                    x, y = self.attack4_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 3):
-                        return [x, x1], [y, y1]
-                while len(self.attack3_list) > 0:
-                    x, y = self.attack3_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 2):
-                        return [x, x1], [y, y1]
-                while len(self.attack2_list) > 0:
-                    x, y = self.attack2_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 1):
-                        return [x, x1], [y, y1]
+                _r = self.defence1attack1(env, x1, y1)
+                if _r is not None:
+                    return _r
             elif low_threat1:
-                while len(self.attack4_list) > 0:
-                    x, y = self.attack4_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 3):
-                        return [x0, x], [y0, y]
-                while len(self.attack3_list) > 0:
-                    x, y = self.attack3_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 2):
-                        return [x0, x], [y0, y]
-                while len(self.attack2_list) > 0:
-                    x, y = self.attack2_list.pop()
-                    if env.judge(x, y, self.flag, self.oppo_flag, 1):
-                        return [x0, x], [y0, y]
+                _r = self.defence1attack1(env, x0, y0)
+                if _r is not None:
+                    return _r
             else:
                 [x0, x1], [y0, y1] = ret
                 if x0 == x1 and y0 == y1:
                     while len(self.attack4_list) > 0:
                         x, y = self.attack4_list.pop()
+                        if x == x0 and y ==y0:
+                            continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 3):
                             return [x0, x], [y0, y]
                     while len(self.attack3_list) > 0:
                         x, y = self.attack3_list.pop()
+                        if x == x0 and y ==y0:
+                            continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 2):
                             return [x0, x], [y0, y]
                     while len(self.attack2_list) > 0:
                         x, y = self.attack2_list.pop()
+                        if x == x0 and y ==y0:
+                            continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 1):
                             return [x0, x], [y0, y]
                     x1, y1 = partial_env1.get_next()
@@ -335,6 +330,67 @@ class CounterPlayer(Base):
         self.attack4_list.extend(_env.sigle(3))
         self.attack3_list.extend(_env.sigle(2))
         self.attack2_list.extend(_env.sigle(1))
+
+    def defence1attack1(self, env, xx, yy):
+        while len(self.attack4_list) > 0:
+            x, y = self.attack4_list.pop()
+            if x == xx and y ==yy:
+                continue
+            if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                return [xx, x], [yy, y]
+        while len(self.attack3_list) > 0:
+            x, y = self.attack3_list.pop()
+            if x == xx and y ==yy:
+                continue
+            if env.judge(x, y, self.flag, self.oppo_flag, 2):
+                return [xx, x], [yy, y]
+        while len(self.attack2_list) > 0:
+            x, y = self.attack2_list.pop()
+            if x == xx and y ==yy:
+                continue
+            if env.judge(x, y, self.flag, self.oppo_flag, 1):
+                return [xx, x], [yy, y]
+        return None
+    
+    def attack2(self, env):
+        x0, y0 = -1, -1
+        for i in self.attack4_list:
+            x, y = i
+            if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                x0=x
+                y0=y
+                break
+            else:
+                self.attack4_list.remove(i)
+        if x0 != -1:
+            for i in self.attack4_list:
+                x, y = i
+                if x == x0 and y ==y0:
+                    continue
+                if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                    return [x,x0],[y,y0]
+                else:
+                    self.attack4_list.remove(i)
+            for i in self.attack3_list:
+                x, y = i
+                if x == x0 and y ==y0:
+                    continue
+                if env.judge(x, y, self.flag, self.oppo_flag, 2):
+                    return [x,x0],[y,y0]
+                else:
+                    self.attack3_list.remove(i)
+            for i in self.attack2_list:
+                x, y = i
+                if x == x0 and y ==y0:
+                    continue
+                if env.judge(x, y, self.flag, self.oppo_flag, 1):
+                    return [x,x0],[y,y0]
+                else:
+                    self.attack2_list.remove(i)
+        return None
+
+
+
 
 
 class RandomPlayer(Base):
