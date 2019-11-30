@@ -378,8 +378,6 @@ class CounterPlayer(Base):
                 x0=x
                 y0=y
                 break
-            else:
-                self.attack4_list.remove(i)
         if x0 != -1:
             for i in self.defence4:
                 x, y = i
@@ -387,40 +385,30 @@ class CounterPlayer(Base):
                     continue
                 if env.board[y][x] == 2:
                     return [x,x0],[y,y0]
-                else:
-                    self.defence4.remove(i)
             for i in self.attack4_list:
                 x, y = i
                 if x == x0 and y ==y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 3):
                     return [x,x0],[y,y0]
-                else:
-                    self.attack4_list.remove(i)
             for i in self.defence3:
                 x, y = i
                 if x == x0 and y ==y0:
                     continue
                 if env.board[y][x] == 2:
                     return [x,x0],[y,y0]
-                else:
-                    self.defence3.remove(i)
             for i in self.attack3_list:
                 x, y = i
                 if x == x0 and y ==y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 2):
                     return [x,x0],[y,y0]
-                else:
-                    self.attack3_list.remove(i)
             for i in self.attack2_list:
                 x, y = i
                 if x == x0 and y ==y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 1):
                     return [x,x0],[y,y0]
-                else:
-                    self.attack2_list.remove(i)
         return None
 
 
