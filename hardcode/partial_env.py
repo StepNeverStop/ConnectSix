@@ -167,10 +167,21 @@ class PartialC6(object):
         def func():
             nums = dict(reversed(sorted(self.oppo_count.items(), key=lambda x: x[1])))
             self.action_index = list(nums.keys())
-            self.oppo_nums = list(nums.values())
+            self.oppo_nums = list(nums.values())    # 对手在某方向上的落子数
             self.low_threat = True if self.oppo_nums[0] < self.threat else False
             self.action_index = self.shuffle_same(self.action_index, self.oppo_nums)
 
+            list4, list3 = [], []
+            for index, value in enumerate(self.oppo_nums):
+                if value >= 3:
+                    _a = self.actions[self.action_index[index]]
+                    if _a is not None:
+                        _b = _a[0] + _a[1] * self.dim
+                        idx = self.available_actions[_b]
+                        if value >=4:
+                            list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
+                        else:
+                            list3.append([int(idx % self.env.dim), int(idx // self.env.dim)])
             ergency_idx = []
             for index, value in enumerate(self.oppo_nums):
                 if value >= 4:
@@ -183,19 +194,19 @@ class PartialC6(object):
                             self.next_action = self.actions[7 - a_idx]
                             self.actions[a_idx] = None
                             self.actions[7 - a_idx] = None
-                            return self.available_actions[_b], True  # 对方连着四个子， 形式危机
+                            return self.available_actions[_b], True, list4, list3  # 对方连着四个子， 形式危机
             if len(ergency_idx) >= 2:
                 _a = self.actions[ergency_idx[0]]
                 _b = _a[0] + _a[1] * self.dim
                 self.next_action = self.actions[ergency_idx[1]]
                 self.actions[ergency_idx[0]] = None
                 self.actions[ergency_idx[1]] = None
-                return self.available_actions[_b], True  # 对方有两个4子的，形式危机
+                return self.available_actions[_b], True, list4, list3  # 对方有两个4子的，形式危机
             elif len(ergency_idx) == 1:
                 _a = self.actions[ergency_idx[0]]
                 _b = _a[0] + _a[1] * self.dim
                 self.actions[ergency_idx[0]] = None
-                return self.available_actions[_b], False    # 对方只有一个4子的，而且一个方向已经被围堵或者四子不相连
+                return self.available_actions[_b], False, list4, list3    # 对方只有一个4子的，而且一个方向已经被围堵或者四子不相连
 
             for index, value in enumerate(self.oppo_nums):
                 a_idx = self.action_index[index]
@@ -203,10 +214,10 @@ class PartialC6(object):
                 self.actions[a_idx] = None
                 if _a is not None:
                     _b = _a[0] + _a[1] * self.dim
-                    return self.available_actions[_b], False
-            return random.sample(self.env.available_actions, 1)[0], False
-        idx, ergency = func()
-        return int(idx % self.env.dim), int(idx // self.env.dim), ergency
+                    return self.available_actions[_b], False, list4, list3
+            return random.sample(self.env.available_actions, 1)[0], False, list4, list3
+        idx, ergency, list4, list3 = func()
+        return int(idx % self.env.dim), int(idx // self.env.dim), ergency, list4, list3 
 
     def get_next(self):
         def func():

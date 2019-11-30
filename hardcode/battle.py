@@ -152,6 +152,8 @@ class CounterPlayer(Base):
         self.attack2_list = []
         self.win_list = []
         self.actions = []
+        self.defence4 = []
+        self.defence3 = []
         pass
 
     def choose_action(self, env):
@@ -173,7 +175,9 @@ class CounterPlayer(Base):
         random.shuffle(self.actions)
         # 其次， 如果对方有连续的四个子，那么肯定需要选择围堵左右两端
         partial_env0 = PartialC6(env, 1, threat=self.threat)
-        x0, y0, ergency = partial_env0.act()
+        x0, y0, ergency, list4, list3 = partial_env0.act()
+        self.defence4.extend(list4)
+        self.defence3.extend(list3)
         low_threat0 = partial_env0.get_low_threat()
         if ergency:  # 如果形势危急
             if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
@@ -183,7 +187,9 @@ class CounterPlayer(Base):
                 return [x0, x1], [y0, y1]   # 直接选择对对手第一个落子两端围堵
         else:
             partial_env1 = PartialC6(env, 0, threat=self.threat)
-            x1, y1, ergency = partial_env1.act()
+            x1, y1, ergency, list4, list3 = partial_env1.act()
+            self.defence4.extend(list4)
+            self.defence3.extend(list3)
             low_threat1 = partial_env1.get_low_threat()
             if ergency:  # 如果对手第一子不危急，第二子危急
                 if env.move_step == 1:  # 而我只能走一步，那么放弃治疗
@@ -363,6 +369,14 @@ class CounterPlayer(Base):
             else:
                 self.attack4_list.remove(i)
         if x0 != -1:
+            for i in self.defence4:
+                x, y = i
+                if x == x0 and y ==y0:
+                    continue
+                if env.board[y][x] == 2:
+                    return [x,x0],[y,y0]
+                else:
+                    self.defence4.remove(i)
             for i in self.attack4_list:
                 x, y = i
                 if x == x0 and y ==y0:
@@ -371,6 +385,14 @@ class CounterPlayer(Base):
                     return [x,x0],[y,y0]
                 else:
                     self.attack4_list.remove(i)
+            for i in self.defence3:
+                x, y = i
+                if x == x0 and y ==y0:
+                    continue
+                if env.board[y][x] == 2:
+                    return [x,x0],[y,y0]
+                else:
+                    self.defence3.remove(i)
             for i in self.attack3_list:
                 x, y = i
                 if x == x0 and y ==y0:
