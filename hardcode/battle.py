@@ -14,7 +14,7 @@ from attack_env import AttackC6
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
-flags.DEFINE_integer('threat', 4, '指定几子相连算威胁，需要围堵')
+flags.DEFINE_integer('threat', 3, '指定几子相连算威胁，需要围堵，3or4')
 flags.DEFINE_boolean('render', False, '是否渲染')
 flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
 flags.DEFINE_string('port', '8080', '指定服务器端口号')
@@ -305,11 +305,23 @@ class CounterPlayer(Base):
             else:
                 [x0, x1], [y0, y1] = ret
                 if x0 == x1 and y0 == y1:
+                    while len(self.defence4) > 0:
+                        x, y = self.defence4.pop()
+                        if x == x0 and y ==y0:
+                            continue
+                        if env.board[y][x] == 2:
+                            return [x0, x], [y0, y]
                     while len(self.attack4_list) > 0:
                         x, y = self.attack4_list.pop()
                         if x == x0 and y ==y0:
                             continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                            return [x0, x], [y0, y]
+                    while len(self.defence3) > 0:
+                        x, y = self.defence3.pop()
+                        if x == x0 and y ==y0:
+                            continue
+                        if env.board[y][x] == 2:
                             return [x0, x], [y0, y]
                     while len(self.attack3_list) > 0:
                         x, y = self.attack3_list.pop()
