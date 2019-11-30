@@ -205,26 +205,34 @@ class Connect6(object):
             i += 1
             if i > 4:
                 break
-            nx, ny = dir_func(x, y)
-            if self.is_outta_range(nx, ny):  # 判断x y是不是边界点
-                continue
-            while self.board[ny][nx] != oppo_flag:
-                nx, ny = dir_func(nx, ny)
-                if self.is_outta_range(nx, ny):
-                    break
+            k = 0
             count = 0
-            counter_oppo = False
+            nx0, ny0 = x, y
+            nx1, ny1 = x, y
+            lf, rf = True, True
             reverse_dir_func = reverse_of(dir_func)
-            for _ in range(6):
-                nx, ny = reverse_dir_func(nx, ny)
-                if self.is_outta_range(nx, ny):  # 判断x y是不是边界点
-                    break
-                if self.board[ny][nx] == flag:
-                    count += 1
-                if self.board[ny][nx] == oppo_flag:
-                    counter_oppo = True
-                    break
-            if counter_oppo or count < num:   # 3 判断4子， 2 判断3子， 1， 判断2子
+            for _ in range(5):
+                if not self.is_outta_range(nx0, ny0) and self.board[ny0][nx0] != oppo_flag and lf:
+                    nx0, ny0 = dir_func(nx0, ny0)
+                    if not self.is_outta_range(nx0, ny0):
+                        if self.board[ny0][nx0] == flag:
+                            count += 1
+                            k+=1
+                        elif self.board[ny0][nx0] == 2:
+                            k+=1
+                        else:
+                            lf = False
+                if not self.is_outta_range(nx1, ny1) and self.board[ny1][nx1] != oppo_flag and rf:
+                    nx1, ny1 = reverse_dir_func(nx1, ny1)
+                    if not self.is_outta_range(nx1, ny1):
+                        if self.board[ny1][nx1] == flag:
+                            count += 1
+                            k+=1
+                        elif self.board[ny1][nx1] == 2:
+                            k+=1
+                        else:
+                            rf = False
+            if count >=6 and k>=num:   # 3 判断4子， 2 判断3子， 1， 判断2子
                 ret[i - 1] = False
         return any(ret)
 
