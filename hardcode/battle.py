@@ -338,11 +338,23 @@ class CounterPlayer(Base):
         self.attack2_list.extend(_env.sigle(1))
 
     def defence1attack1(self, env, xx, yy):
+        while len(self.defence4) > 0:
+            x, y = self.defence4.pop()
+            if x == xx and y ==yy:
+                continue
+            if env.board[y][x] == 2:
+                return [xx, x], [yy, y]
         while len(self.attack4_list) > 0:
             x, y = self.attack4_list.pop()
             if x == xx and y ==yy:
                 continue
             if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                return [xx, x], [yy, y]
+        while len(self.defence3) > 0:
+            x, y = self.defence3.pop()
+            if x == xx and y ==yy:
+                continue
+            if env.board[y][x] == 2:
                 return [xx, x], [yy, y]
         while len(self.attack3_list) > 0:
             x, y = self.attack3_list.pop()
