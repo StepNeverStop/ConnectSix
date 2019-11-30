@@ -323,7 +323,7 @@ class CounterPlayer(Base):
                             continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 1):
                             return [x0, x], [y0, y]
-                    x1, y1 = partial_env1.get_next()
+                        x1, y1 = partial_env1.get_next()
                     return [x0, x1], [y0, y1]
             return ret
 

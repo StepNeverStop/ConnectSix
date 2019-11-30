@@ -29,6 +29,7 @@ class PartialC6(object):
         self.current_player = env.current_player
         self.oppo_player = (env.current_player + 1) % 2
         self.actions = [None] * 8
+        self.next_owner = [False] * 8
         self.oppo_count = {i: 1 for i in range(8)}
         self.skip_count = [0] * 8
         self.get_8actions = self.get_8actions_v2
@@ -61,6 +62,13 @@ class PartialC6(object):
             else:
                 if self.board[ny][nx] == 2:
                     self.actions[index] = [nx, ny]
+                nx, ny = dir_func(nx, ny)
+                if self.is_outta_range(nx, ny):
+                    self.next_owner[index] = True
+                    index+=1
+                    continue
+                if self.board[ny][nx] != flag and self.board[ny][nx] != 2:
+                    self.next_owner[index] = True
             index += 1
         val_list = self.reverse_add(list(self.oppo_count.values()))
         self.oppo_count = {i: val_list[i] for i in range(8)}
@@ -182,6 +190,7 @@ class PartialC6(object):
                             list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
                         else:
                             list3.append([int(idx % self.env.dim), int(idx // self.env.dim)])
+
             ergency_idx = []
             for index, value in enumerate(self.oppo_nums):
                 if value >= 4:
@@ -189,12 +198,25 @@ class PartialC6(object):
                     _a = self.actions[a_idx]
                     if _a is not None:
                         _b = _a[0] + _a[1] * self.dim
-                        ergency_idx.append(a_idx)
                         if self.actions[7 - a_idx] is not None and not self.jumps[a_idx]:
+                            if self.next_owner[7 - a_idx] == True:
+                                self.actions[a_idx] = None
+                                self.actions[7 - a_idx] = None
+                                return self.available_actions[_b], False, list4, list3
+                            if self.next_owner[a_idx] == True:
+                                _c = self.actions[7 - a_idx]
+                                _b = _c[0] + _c[1] * self.dim
+                                self.actions[a_idx] = None
+                                self.actions[7 - a_idx] = None
+                                return self.available_actions[_b], False, list4, list3
                             self.next_action = self.actions[7 - a_idx]
                             self.actions[a_idx] = None
                             self.actions[7 - a_idx] = None
                             return self.available_actions[_b], True, list4, list3  # 对方连着四个子， 形式危机
+
+                        if self.next_owner[a_idx] == False:
+                            ergency_idx.append(a_idx)
+
             if len(ergency_idx) >= 2:
                 _a = self.actions[ergency_idx[0]]
                 _b = _a[0] + _a[1] * self.dim
