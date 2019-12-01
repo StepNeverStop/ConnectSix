@@ -65,7 +65,7 @@ class PartialC6(object):
                 nx, ny = dir_func(nx, ny)
                 if self.is_outta_range(nx, ny):
                     self.next_owner[index] = True
-                    index+=1
+                    index += 1
                     continue
                 if self.board[ny][nx] != flag and self.board[ny][nx] != 2:
                     self.next_owner[index] = True
@@ -186,7 +186,7 @@ class PartialC6(object):
                     if _a is not None:
                         _b = _a[0] + _a[1] * self.dim
                         idx = self.available_actions[_b]
-                        if value >=4:
+                        if value >= 4:
                             list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
                         else:
                             list3.append([int(idx % self.env.dim), int(idx // self.env.dim)])
@@ -239,7 +239,7 @@ class PartialC6(object):
                     return self.available_actions[_b], False, list4, list3
             return random.sample(self.env.available_actions, 1)[0], False, list4, list3
         idx, ergency, list4, list3 = func()
-        return int(idx % self.env.dim), int(idx // self.env.dim), ergency, list4, list3 
+        return int(idx % self.env.dim), int(idx // self.env.dim), ergency, list4, list3
 
     def get_next(self):
         def func():

@@ -307,31 +307,31 @@ class CounterPlayer(Base):
                 if x0 == x1 and y0 == y1:
                     while len(self.defence4) > 0:
                         x, y = self.defence4.pop()
-                        if x == x0 and y ==y0:
+                        if x == x0 and y == y0:
                             continue
                         if env.board[y][x] == 2:
                             return [x0, x], [y0, y]
                     while len(self.attack4_list) > 0:
                         x, y = self.attack4_list.pop()
-                        if x == x0 and y ==y0:
+                        if x == x0 and y == y0:
                             continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 3):
                             return [x0, x], [y0, y]
                     while len(self.defence3) > 0:
                         x, y = self.defence3.pop()
-                        if x == x0 and y ==y0:
+                        if x == x0 and y == y0:
                             continue
                         if env.board[y][x] == 2:
                             return [x0, x], [y0, y]
                     while len(self.attack3_list) > 0:
                         x, y = self.attack3_list.pop()
-                        if x == x0 and y ==y0:
+                        if x == x0 and y == y0:
                             continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 2):
                             return [x0, x], [y0, y]
                     while len(self.attack2_list) > 0:
                         x, y = self.attack2_list.pop()
-                        if x == x0 and y ==y0:
+                        if x == x0 and y == y0:
                             continue
                         if env.judge(x, y, self.flag, self.oppo_flag, 1):
                             return [x0, x], [y0, y]
@@ -352,79 +352,83 @@ class CounterPlayer(Base):
     def defence1attack1(self, env, xx, yy):
         while len(self.defence4) > 0:
             x, y = self.defence4.pop()
-            if x == xx and y ==yy:
+            if x == xx and y == yy:
                 continue
             if env.board[y][x] == 2:
                 return [xx, x], [yy, y]
         while len(self.attack4_list) > 0:
             x, y = self.attack4_list.pop()
-            if x == xx and y ==yy:
+            if x == xx and y == yy:
                 continue
             if env.judge(x, y, self.flag, self.oppo_flag, 3):
                 return [xx, x], [yy, y]
         while len(self.defence3) > 0:
             x, y = self.defence3.pop()
-            if x == xx and y ==yy:
+            if x == xx and y == yy:
                 continue
             if env.board[y][x] == 2:
                 return [xx, x], [yy, y]
         while len(self.attack3_list) > 0:
             x, y = self.attack3_list.pop()
-            if x == xx and y ==yy:
+            if x == xx and y == yy:
                 continue
             if env.judge(x, y, self.flag, self.oppo_flag, 2):
                 return [xx, x], [yy, y]
         while len(self.attack2_list) > 0:
             x, y = self.attack2_list.pop()
-            if x == xx and y ==yy:
+            if x == xx and y == yy:
                 continue
             if env.judge(x, y, self.flag, self.oppo_flag, 1):
                 return [xx, x], [yy, y]
         return None
-    
+
     def attack2(self, env):
         x0, y0 = -1, -1
-        for i in self.attack4_list:
+        for i in self.defence4:
             x, y = i
-            if env.judge(x, y, self.flag, self.oppo_flag, 3):
-                x0=x
-                y0=y
+            if env.board[y][x] == 2:
+                x0 = x
+                y0 = y
                 break
+        if x0 == -1:
+            for i in self.attack4_list:
+                x, y = i
+                if env.judge(x, y, self.flag, self.oppo_flag, 3):
+                    x0 = x
+                    y0 = y
+                    break
         if x0 != -1:
             for i in self.defence4:
                 x, y = i
-                if x == x0 and y ==y0:
+                if x == x0 and y == y0:
                     continue
                 if env.board[y][x] == 2:
-                    return [x,x0],[y,y0]
+                    return [x, x0], [y, y0]
             for i in self.attack4_list:
                 x, y = i
-                if x == x0 and y ==y0:
+                if x == x0 and y == y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 3):
-                    return [x,x0],[y,y0]
+                    return [x, x0], [y, y0]
             for i in self.defence3:
                 x, y = i
-                if x == x0 and y ==y0:
+                if x == x0 and y == y0:
                     continue
                 if env.board[y][x] == 2:
-                    return [x,x0],[y,y0]
+                    return [x, x0], [y, y0]
             for i in self.attack3_list:
                 x, y = i
-                if x == x0 and y ==y0:
+                if x == x0 and y == y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 2):
-                    return [x,x0],[y,y0]
+                    return [x, x0], [y, y0]
             for i in self.attack2_list:
                 x, y = i
-                if x == x0 and y ==y0:
+                if x == x0 and y == y0:
                     continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 1):
-                    return [x,x0],[y,y0]
+                    return [x, x0], [y, y0]
         return None
-
-
-
 
 
 class RandomPlayer(Base):

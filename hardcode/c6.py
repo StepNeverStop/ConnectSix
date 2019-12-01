@@ -217,9 +217,9 @@ class Connect6(object):
                     if not self.is_outta_range(nx0, ny0):
                         if self.board[ny0][nx0] == flag:
                             count += 1
-                            k+=1
+                            k += 1
                         elif self.board[ny0][nx0] == 2:
-                            k+=1
+                            k += 1
                         else:
                             lf = False
                 if not self.is_outta_range(nx1, ny1) and self.board[ny1][nx1] != oppo_flag and rf:
@@ -227,12 +227,12 @@ class Connect6(object):
                     if not self.is_outta_range(nx1, ny1):
                         if self.board[ny1][nx1] == flag:
                             count += 1
-                            k+=1
+                            k += 1
                         elif self.board[ny1][nx1] == 2:
-                            k+=1
+                            k += 1
                         else:
                             rf = False
-            if count >=6 and k>=num:   # 3 判断4子， 2 判断3子， 1， 判断2子
+            if count >= 6 and k >= num:   # 3 判断4子， 2 判断3子， 1， 判断2子
                 ret[i - 1] = False
         return any(ret)
 
