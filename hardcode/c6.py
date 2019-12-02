@@ -199,7 +199,7 @@ class Connect6(object):
         if self.board[y][x] != 2:
             return False
 
-        ret = [True] * 4
+        ret = [False] * 4
         i = 0
         for _dir, dir_func in self.directions.items():
             i += 1
@@ -232,8 +232,8 @@ class Connect6(object):
                             k += 1
                         else:
                             rf = False
-            if count >= 6 and k >= num:   # 3 判断4子， 2 判断3子， 1， 判断2子
-                ret[i - 1] = False
+            if k >= 6 and count >= num:   # 3 判断4子， 2 判断3子， 1， 判断2子
+                ret[i - 1] = True
         return any(ret)
 
     def get3(self, x, y, oppo_flag):

@@ -1,5 +1,6 @@
 # coding: utf-8
 # athor: Keavnn
+import random
 import numpy as np
 from pprint import pprint
 from absl import app, flags, logging
@@ -15,6 +16,8 @@ import time
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 19, 'box的大小')
 flags.DEFINE_string('model_path', './models', '指定要加载的模型文件夹')
+flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
+flags.DEFINE_string('port', '8080', '指定服务器端口号')
 
 
 def main(_argv):
@@ -22,6 +25,8 @@ def main(_argv):
     board_size = FLAGS.board_size
     box_size = FLAGS.box_size
     model_path = FLAGS.model_path + '/models' + str(FLAGS.box_size)
+    ip = FLAGS.ip
+    port = FLAGS.port
     pprint(config)
     env = C6(
         dim=board_size,
@@ -39,7 +44,8 @@ def main(_argv):
         dim=box_size,
         name='mcts_rl_policy'
     )
-    player2 = HumanPlayer(board_size)
+    # player2 = HumanPlayer(board_size)
+    player2 = RandomPlayer()
     battle_loop(env, player, player2, is_black=True)
 
 
@@ -53,8 +59,8 @@ def battle_loop(env, player1, player2=None, is_black=True):
         players = [player2, player1]
     while True:
         x, y = players[env.current_player].choose_action(env, return_prob=False, is_self_play=False)
-        print(x, y)
-        input()
+        # print(x, y)
+        # input()
         if isinstance(x, list):
             env.step(x[0], y[0])
             if len(x) == 1:
@@ -67,6 +73,21 @@ def battle_loop(env, player1, player2=None, is_black=True):
         end, winner = env.is_over()
         if end:
             break
+
+
+class RandomPlayer:
+    def __init__(self):
+        pass
+
+    def choose_action(self, env, *args, **kwargs):
+        idx0 = random.sample(env.available_actions, 1)[0]
+        idx1 = random.sample(env.available_actions, 1)[0]
+        x0, y0 = int(idx0 % env.dim), int(idx0 // env.dim)
+        x1, y1 = int(idx1 % env.dim), int(idx1 // env.dim)
+        if env.move_step == 1:
+            return [x0], [y0]
+        else:
+            return [x0, x1], [y0, y1]
 
 
 class HumanPlayer:

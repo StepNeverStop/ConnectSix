@@ -100,7 +100,7 @@ class AttackC6(object):
                     al.extend(ll)
                 else:
                     bl.extend(ll)
-        # left top 2 right bottomget3
+        # left top 2 right bottom
         _diff = self.xx - self.yy
         if -6 < _diff < 6:
             diag = self.board.diagonal(_diff)

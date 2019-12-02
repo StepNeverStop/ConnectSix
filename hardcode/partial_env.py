@@ -182,13 +182,25 @@ class PartialC6(object):
             list4, list3 = [], []
             for index, value in enumerate(self.oppo_nums):
                 if value >= 3:
-                    _a = self.actions[self.action_index[index]]
+                    a_idx = self.action_index[index]
+                    _a = self.actions[a_idx]
                     if _a is not None:
                         _b = _a[0] + _a[1] * self.dim
                         idx = self.available_actions[_b]
-                        if value >= 4:
+                        if value > 4:
                             list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
-                        else:
+                        if value == 4:
+                            if self.jumps[a_idx]:
+                                list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
+                            else:
+                                if self.next_owner[a_idx] == True and self.actions[7 - a_idx] is not None:
+                                    _c = self.actions[7 - a_idx]
+                                    _b = _c[0] + _c[1] * self.dim
+                                    idx = self.available_actions[_b]
+                                    list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
+                                elif self.next_owner[7 - a_idx] == True:
+                                    list4.append([int(idx % self.env.dim), int(idx // self.env.dim)])
+                        elif value == 3:
                             list3.append([int(idx % self.env.dim), int(idx // self.env.dim)])
 
             ergency_idx = []

@@ -383,6 +383,7 @@ class CounterPlayer(Base):
         return None
 
     def attack2(self, env):
+        attack = False
         x0, y0 = -1, -1
         for i in self.defence4:
             x, y = i
@@ -396,6 +397,7 @@ class CounterPlayer(Base):
                 if env.judge(x, y, self.flag, self.oppo_flag, 3):
                     x0 = x
                     y0 = y
+                    attack = True
                     break
         if x0 != -1:
             for i in self.defence4:
@@ -408,6 +410,13 @@ class CounterPlayer(Base):
                 x, y = i
                 if x == x0 and y == y0:
                     continue
+                if attack:
+                    if abs(x - x0) == 4 and abs(y - y0) == 0:
+                        continue
+                    if abs(x - x0) == 4 and abs(y - y0) == 4:
+                        continue
+                    if abs(x - x0) == 0 and abs(y - y0) == 4:
+                        continue
                 if env.judge(x, y, self.flag, self.oppo_flag, 3):
                     return [x, x0], [y, y0]
             for i in self.defence3:
