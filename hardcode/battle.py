@@ -10,11 +10,22 @@ from absl.flags import FLAGS
 from c6 import Connect6
 from partial_env import PartialC6
 from attack_env import AttackC6
+from zzy.zzy_bot_for_test import ZZY_Bot
+
+
+def timer(func):
+    def inner(*args, **kwargs):
+        start = time.time()
+        ret = func(*args, **kwargs)
+        time_cost = time.time() - start
+        print(f'消耗时间: {time_cost}')
+        return ret
+    return inner
 
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
-flags.DEFINE_integer('threat', 3, '指定几子相连算威胁，需要围堵，3or4')
+flags.DEFINE_integer('threat', 4, '指定几子相连算威胁，需要围堵，3or4')
 flags.DEFINE_boolean('render', False, '是否渲染')
 flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
 flags.DEFINE_string('port', '8080', '指定服务器端口号')
@@ -22,10 +33,11 @@ flags.DEFINE_enum('color', 'n', ['n', 'b', 'w'],
                   'n: 随机, '
                   'b: 黑子, '
                   'w: 白子')
-flags.DEFINE_enum('op', 'random', ['random', 'human', 'self'],
+flags.DEFINE_enum('op', 'random', ['random', 'human', 'self', 'zzy'],
                   'random: 随机策略, '
                   'human: 跟别人对战,'
-                  'self: 自我对弈')
+                  'self: 自我对弈,'
+                  'zzy: zzy')
 
 
 class Base:
@@ -48,19 +60,26 @@ def main(_argv):
     op = FLAGS.op
     threat = FLAGS.threat
     env = Connect6(dim=board_size, box_size=box_size)
-    count = 0
-    tie = 0
+    b_count = 0
+    w_count = 0
+    b_tie = 0
+    w_tie = 0
+    bb = 0
+    ww = 0
     for i in range(FLAGS.num):
         if color == 'n':
             a = random.random()
             if a > 0.5:
                 is_black = False    # 极致防御后手
+                ww+=1
             else:
                 is_black = True     # 极致防御先手
+                bb+=1
         elif color == 'b':
             is_black = True
         else:
             is_black = False
+        _color_player1 = '黑子' if is_black else '白子'
 
         player1 = CounterPlayer(is_black=is_black, threat=threat)   # 极致防御策略
 
@@ -74,16 +93,26 @@ def main(_argv):
             player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         elif op == 'self':
             player2 = CounterPlayer(is_black=False if is_black else True, threat=threat)
+        elif op == 'zzy':
+            player2 = ZZY_Bot(None, board_size, 1 if is_black else 0)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
-        logging.info(f'第{i:4d}局结束, {ret}')
+        logging.info(f'第{i:4d}局结束, {ret}, player1为{_color_player1}')
         if ret:
-            count += 1
+            if is_black:
+                b_count += 1
+            else:
+                w_count += 1
         elif winner == -1:
-            tie += 1
-    logging.info(f'对局{FLAGS.num}, 胜场{count}, 平局{tie}, 胜率为: {count/FLAGS.num:.2%}')
+            if is_black:
+                b_tie += 1
+            else:
+                w_tie += 1
+    logging.info(f'总对局{FLAGS.num}, 胜场{b_count+w_count}, 平局{b_tie+w_tie}, 胜率为: {(b_count+w_count)/FLAGS.num:.2%}')
+    logging.info(f'黑棋先手对局{bb}, 胜场{b_count}, 平局{b_tie}, 胜率为: {b_count/bb:.2%}')
+    logging.info(f'白起后手对局{ww}, 胜场{w_count}, 平局{w_tie}, 胜率为: {w_count/ww:.2%}')
     pass
 
-
+@timer
 def battle_loop(env, player1, player2=None, is_black=True):
     if player2 is None:
         return
@@ -121,6 +150,7 @@ def battle_loop(env, player1, player2=None, is_black=True):
             players[cur_player].update(env, x[-1], y[-1])
         end, winner = env.is_over()
         if end:
+            player2.dispose()
             if FLAGS.render:
                 env.render()
             break
