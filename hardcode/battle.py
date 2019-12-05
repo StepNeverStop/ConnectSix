@@ -1,12 +1,14 @@
 
 # coding: utf-8
 # athor: Keavnn
+import time
 import random
 import requests
-import time
+
 from pprint import pprint
 from absl import app, flags, logging
 from absl.flags import FLAGS
+
 from c6 import Connect6
 from partial_env import PartialC6
 from attack_env import AttackC6
@@ -18,14 +20,15 @@ def timer(func):
         start = time.time()
         ret = func(*args, **kwargs)
         time_cost = time.time() - start
-        print(f'消耗时间: {time_cost}')
+        logging.info(f'消耗时间: {time_cost}')
         return ret
     return inner
+
 
 flags.DEFINE_integer('board_size', 37, '棋盘尺寸大小')
 flags.DEFINE_integer('box_size', 11, '局部大小')
 flags.DEFINE_integer('num', 10, '对局数')
-flags.DEFINE_integer('threat', 4, '指定几子相连算威胁，需要围堵，3or4')
+flags.DEFINE_integer('threat', 3, '指定几子相连算威胁，需要围堵，3or4')  # 自在极意算法的策略，3偏防守，4偏进攻
 flags.DEFINE_boolean('render', False, '是否渲染')
 flags.DEFINE_string('ip', '58.199.162.110', '指定服务器IP地址')
 flags.DEFINE_string('port', '8080', '指定服务器端口号')
@@ -38,6 +41,10 @@ flags.DEFINE_enum('op', 'random', ['random', 'human', 'self', 'zzy'],
                   'human: 跟别人对战,'
                   'self: 自我对弈,'
                   'zzy: zzy')
+flags.DEFINE_enum('me', 'zzy', ['zzy', 'wjs'],
+                  'zzy: 双参评估+搜索, '
+                  'wjs: 随机硬逻辑')
+# example: python battle.py --ip 127.0.0.1 --op human --me zzy --color b --board_size 37 --render --num 1
 
 
 class Base:
@@ -50,6 +57,9 @@ class Base:
     def update(self, *args, **kwargs):
         pass
 
+    def dispose(self, *args, **kwargs):
+        pass
+
 
 def main(_argv):
     board_size = FLAGS.board_size
@@ -59,6 +69,7 @@ def main(_argv):
     color = FLAGS.color
     op = FLAGS.op
     threat = FLAGS.threat
+    me = FLAGS.me
     env = Connect6(dim=board_size, box_size=box_size)
     b_count = 0
     w_count = 0
@@ -70,33 +81,38 @@ def main(_argv):
         if color == 'n':
             a = random.random()
             if a > 0.5:
-                is_black = False    # 极致防御后手
-                ww+=1
+                is_black = False    # 后手
+                ww += 1
             else:
-                is_black = True     # 极致防御先手
-                bb+=1
+                is_black = True     # 先手
+                bb += 1
         elif color == 'b':
             is_black = True
         else:
             is_black = False
         _color_player1 = '黑子' if is_black else '白子'
 
-        player1 = CounterPlayer(is_black=is_black, threat=threat)   # 极致防御策略
+        if me == 'zzy':
+            player1 = ZZY_Bot(None, board_size, 0 if is_black else 1)   # 双参评估+搜索
+        elif me == 'wjs':
+            player1 = CounterPlayer(is_black=is_black, threat=threat)   # 自在极意策略
+        else:
+            raise Exception("请指定正确的策略模型")
 
         if op == 'random':
             player2 = RandomPlayer()
         elif op == 'human':
             if is_black:
-                logging.info('自在极意 ----> 黑棋|先手')
+                logging.info('我方策略 ----> 黑棋|先手')
             else:
-                logging.info('自在极意 ----> 白棋|后手')
+                logging.info('我方策略 ----> 白棋|后手')
             player2 = TestPlayer(ip=ip, port=port, is_black=is_black)
         elif op == 'self':
             player2 = CounterPlayer(is_black=False if is_black else True, threat=threat)
         elif op == 'zzy':
             player2 = ZZY_Bot(None, board_size, 1 if is_black else 0)
         ret, winner = battle_loop(env, player1, player2, is_black=is_black)
-        logging.info(f'第{i:4d}局结束, {ret}, player1为{_color_player1}')
+        logging.info(f'第{i:4d}局结束, {ret}, Player1 {me} 为{_color_player1}')
         if ret:
             if is_black:
                 b_count += 1
@@ -107,10 +123,11 @@ def main(_argv):
                 b_tie += 1
             else:
                 w_tie += 1
-    logging.info(f'总对局{FLAGS.num}, 胜场{b_count+w_count}, 平局{b_tie+w_tie}, 胜率为: {(b_count+w_count)/FLAGS.num:.2%}')
-    logging.info(f'黑棋先手对局{bb}, 胜场{b_count}, 平局{b_tie}, 胜率为: {b_count/bb:.2%}')
-    logging.info(f'白起后手对局{ww}, 胜场{w_count}, 平局{w_tie}, 胜率为: {w_count/ww:.2%}')
+    logging.info(f'总对局数{FLAGS.num}, Player1 {me} 胜场{b_count+w_count}, 平局{b_tie+w_tie}, 胜率为: {(b_count+w_count)/FLAGS.num:.2%}')
+    logging.info(f'黑棋先手对局{bb}, Player1 {me} 胜场{b_count}, 平局{b_tie}, 胜率为: {b_count/bb:.2%}')
+    logging.info(f'白起后手对局{ww}, Player1 {me} 胜场{w_count}, 平局{w_tie}, 胜率为: {w_count/ww:.2%}')
     pass
+
 
 @timer
 def battle_loop(env, player1, player2=None, is_black=True):
