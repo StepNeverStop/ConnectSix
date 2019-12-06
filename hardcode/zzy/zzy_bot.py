@@ -227,6 +227,7 @@ class ZZY_Bot:
         return player_board_values, opponent_player_board_values
 
     def choose_action(self, board, last_move=None):
+        _time = time.time()
         if np.all(board == 2):  # 下第一步棋
             x, y = [board.shape[0] // 2 + 1], [board.shape[1] // 2 + 1]
             if self.client is not None:
@@ -236,7 +237,6 @@ class ZZY_Bot:
         board_values, opponent_board_values = self.get_board_values(board)
 
         base_value = get_sum_value_from_board_values(board_values, opponent_board_values, 0)
-        print('base_value', base_value)
         if base_value >= 0:
             ratio_i = 1  # 进攻
         else:
@@ -258,21 +258,19 @@ class ZZY_Bot:
             tmp_next_opponent_values = []
             for j, pos in enumerate(available_pos):
                 if pos[0] not in check_pos and pos[1] not in check_pos:  # TODO 扩大范围
-                    # if pos[0] == [22,24] and pos[1] == [22, 26]:
-                    #     print(available_pos_opponent_values[j])
                     tmp_next_opponent_values.append(available_pos_opponent_values[j])
 
-            next_opponent_max_values[i] = max(tmp_next_opponent_values)
-            approx_available_pos_values[i] -= next_opponent_max_values[i]
+            if len(tmp_next_opponent_values) > 0:
+                next_opponent_max_values[i] = max(tmp_next_opponent_values)
+                approx_available_pos_values[i] -= next_opponent_max_values[i]
 
         # 降序排列
         pos_value_tuple = list(zip(available_pos, available_pos_values, next_opponent_max_values, approx_available_pos_values))
         pos_value_tuple.sort(key=lambda t: t[3], reverse=True)
         available_pos, available_pos_values, next_opponent_max_values, _ = zip(*pos_value_tuple)
         available_pos, available_pos_values, next_opponent_max_values = list(available_pos), list(available_pos_values), list(next_opponent_max_values)
-        # for i in range(len(available_pos)):
-        #     print(available_pos[i], available_pos_values[i], approx_available_pos_values[i], next_opponent_max_values[i])
 
+        ori_available_pos = available_pos[:]
         available_pos = available_pos[:50]
         available_pos_values = available_pos_values[:50]
         next_opponent_max_values = next_opponent_max_values[:50]
@@ -297,9 +295,10 @@ class ZZY_Bot:
                                                                                   (self.player + 1) % 2,
                                                                                   new_opponent_board_values,
                                                                                   new_board_values, 1)
-            max_new_available_pos_value = max(new_available_pos_values)
-            if max_new_available_pos_value > next_opponent_max_values[i]:
-                next_opponent_max_values[i] = max_new_available_pos_value
+            if len(new_available_pos_values) > 0:
+                max_new_available_pos_value = max(new_available_pos_values)
+                if max_new_available_pos_value > next_opponent_max_values[i]:
+                    next_opponent_max_values[i] = max_new_available_pos_value
 
             available_pos_values[i] -= next_opponent_max_values[i]
 
@@ -307,6 +306,7 @@ class ZZY_Bot:
         if idx != 0:
             print('!!!!!', idx)
         pos = available_pos[idx]
+        print(time.time() - _time)
         x, y = [pos[0][0], pos[1][0]], [pos[0][1], pos[1][1]]
         if self.client is not None:
             self.client.move(x, y)

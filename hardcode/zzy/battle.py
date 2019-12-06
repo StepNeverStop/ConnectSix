@@ -117,40 +117,21 @@ class Client:
 
 
 if __name__ == "__main__":
-    from zzy_bot_1 import ZZY_Bot_1
-
-    client_b = Client(is_black=True)
-    client_w = Client(is_black=False)
-    env = Connect6(37)
-
-    players = [ZZY_Bot(client_b, 37, 0), ZZY_Bot_1(client_w, 37, 1)]
-
-    while True:
-        print(env.current_player, '落子')
-        board, last_move = env.get_current_state()
-        _time = time.time()
-        x, y = players[env.current_player].choose_action(board, last_move)
-        time.sleep(0.5)
-        print(env.current_player, time.time() - _time)
-        env.step(x, y)
-        print(x, y)
-        # print_matrix(env.board)
-
-        end, winner = env.is_over()
-        if end:
-            print(f'winner {winner}')
-            break
-    ############################################
     # from zzy_bot_1 import ZZY_Bot_1
+
+    # client_b = Client(is_black=True)
+    # client_w = Client(is_black=False)
     # env = Connect6(37)
 
-    # players = [ZZY_Bot(None, 37, 0), ZZY_Bot_1(None, 37, 1)]
+    # players = [ZZY_Bot(client_b, 37, 0), ZZY_Bot_1(client_w, 37, 1)]
 
     # while True:
     #     print(env.current_player, '落子')
     #     board, last_move = env.get_current_state()
+    #     _time = time.time()
     #     x, y = players[env.current_player].choose_action(board, last_move)
     #     time.sleep(0.5)
+    #     print(env.current_player, time.time() - _time)
     #     env.step(x, y)
     #     print(x, y)
     #     # print_matrix(env.board)
@@ -159,16 +140,37 @@ if __name__ == "__main__":
     #     if end:
     #         print(f'winner {winner}')
     #         break
+    ############################################
+    from zzy_bot_1 import ZZY_Bot_1
+    env = Connect6(37)
+
+    players = [ZZY_Bot_1(None, 37, 0), ZZY_Bot(None, 37, 1)]
+
+    while True:
+        print(env.current_player, '落子')
+        board, last_move = env.get_current_state()
+        x, y = players[env.current_player].choose_action(board, last_move)
+        time.sleep(0.5)
+        env.step(x, y)
+        print(x, y)
+        # print_matrix(env.board)
+
+        end, winner = env.is_over()
+        if end:
+            print(f'winner {winner}')
+            break
 
     #############################
 
-    # is_black = False
+    # IP = '127.0.0.1'
+    # PORT = 8080
+    # IS_BLACK = False
 
-    # client = Client(is_black=is_black)
+    # client = Client(ip=IP, port=PORT, is_black=IS_BLACK)
 
     # env = Connect6(37)
 
-    # if is_black:
+    # if IS_BLACK:
     #     players = [ZZY_Bot(client, 37, 0), Simulated_Player(client)]
     # else:
     #     players = [Simulated_Player(client), ZZY_Bot(client, 37, 1)]

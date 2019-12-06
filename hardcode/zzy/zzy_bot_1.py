@@ -70,7 +70,7 @@ class ZZY_Bot_1:
                 for i in range(6):
                     c = np.sum(board_value == (i + 1))
                     total_value += c * self.ratio[i]
-                    c = np.sum(opponent_board_values == (i + 1))
+                    c = np.sum(opponent_board_value == (i + 1))
                     opponent_total_value += c * self.opponent_ratio[i]
 
             available_pos_values.append(total_value - opponent_total_value)
