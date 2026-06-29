@@ -1,10 +1,11 @@
 # coding: utf-8
-# athor: Keavnn
+# author: Keavnn
 
 import time
-from absl import app, flags, logging
-from absl.flags import FLAGS
-from game import Connect6, Connect6WJS
+
+from absl import app, flags
+
+from game import Connect6WJS
 from loop import battle, test_loop, train_loop
 
 flags.DEFINE_integer('size', 19, '棋盘尺寸大小')
@@ -25,48 +26,42 @@ flags.DEFINE_string('p2_name', 'player2', '设置第二位选手的名字')
 flags.DEFINE_float('learning_rate', 5e-4, '设置学习率')
 
 
-def main(_argv):
-    # 设置棋盘维度
-    dim = FLAGS.size
-    player1_name = FLAGS.p1_name
-    player2_name = FLAGS.p2_name
-    player1_param = dict([
-        ['dim', dim],
-        ['name', player1_name],
-    ])
-    player2_param = dict([
-        ['dim', dim],
-        ['name', player2_name],
-    ])
-    model1 = generate_model(FLAGS.p1_mode, player1_param)
-    time.sleep(1)  # 避免log写在同一个文件
-    model2 = generate_model(FLAGS.p2_mode, player2_param)
-
-    players = [model1, model2]
-    env = Connect6WJS(dim=dim)
-    if FLAGS.mode == 'test':
-        test_loop(env, players)
-    elif FLAGS.mode == 'train':
-        train_loop(env, players)
-    elif FLAGS.mode == 'battle':
-        battle(env, players)
-    else:
-        raise NotImplementedError
-
-
 def generate_model(choice, param):
     if choice == 'player':
         from player import Player
         return Player(**param)
-    elif choice == 'random':
+    if choice == 'random':
         from player import RandomBot
         return RandomBot(**param)
-    elif choice == 'mcts':
+    if choice == 'mcts':
         from player import MCTSPlayer
-        return MCTSPlayer(name=param['name'], c_puct=5, n_playout=1000, max_step=1000)
+        return MCTSPlayer(
+            name=param['name'], c_puct=5, n_playout=1000, max_step=1000
+        )
+    from player import MyPolicy
+    return MyPolicy(**param)
+
+
+def main(_argv):
+    dim = flags.FLAGS.size
+    player1_param = {'dim': dim, 'name': flags.FLAGS.p1_name}
+    player2_param = {'dim': dim, 'name': flags.FLAGS.p2_name}
+
+    model1 = generate_model(flags.FLAGS.p1_mode, player1_param)
+    time.sleep(1)
+    model2 = generate_model(flags.FLAGS.p2_mode, player2_param)
+
+    players = [model1, model2]
+    env = Connect6WJS(dim=dim)
+
+    if flags.FLAGS.mode == 'test':
+        test_loop(env, players)
+    elif flags.FLAGS.mode == 'train':
+        train_loop(env, players)
+    elif flags.FLAGS.mode == 'battle':
+        battle(env, players)
     else:
-        from player import MyPolicy
-        return MyPolicy(**param)
+        raise NotImplementedError
 
 
 if __name__ == '__main__':

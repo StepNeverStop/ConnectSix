@@ -11,7 +11,8 @@ class MyPolicy(RL_Policy):
     """
 
     def __init__(self, dim, name='wjs_policy'):
-        super().__init__(dim, name)
+        super().__init__(cp_dir='./models')
+        self.name = name
 
         self.state_dim = dim * dim * 3
         self.gamma = 0.99

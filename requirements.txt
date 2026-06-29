@@ -1,0 +1,6 @@
+absl-py>=0.7.0
+gym>=0.15.0
+numpy>=1.16.0
+PyYAML>=5.1
+requests>=2.22.0
+tensorflow>=2.0.0

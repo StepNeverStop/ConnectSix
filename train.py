@@ -1,98 +1,44 @@
 # coding: utf-8
-# athor: Keavnn
+# author: Keavnn
+
 import numpy as np
 from pprint import pprint
+
 from absl import app, flags, logging
-from absl.flags import FLAGS
+
 from game.connect6_mcts_rl import C6
 from player.mcts_rl import MCTS_POLICY, MCTSRL
+from utils.config import load_config
 from utils.timer import timer
-from utils.sth import load_config
 
 flags.DEFINE_integer('size', 19, '棋盘尺寸大小')
 flags.DEFINE_boolean('load', False, '是否载入模型')
 flags.DEFINE_float('learning_rate', 5e-4, '设置学习率')
 
 
-def main(_argv):
-    config = load_config('./train_config.yaml')
-    config['dim'] = FLAGS.size
-    config['learning_rate'] = FLAGS.learning_rate
-    cp_dir = './models/models' + str(FLAGS.size)
-    data_file = './data/data' + str(FLAGS.size)
-    pprint(config)
-    env = C6(
-        dim=config['dim']
-    )
-    net = MCTS_POLICY(
-        state_dim=[config['dim'], config['dim'], 4],
-        learning_rate=config['learning_rate'],
-        buffer_size=config['buffer_size'],
-        batch_size=config['batch_size'],
-        epochs=config['epochs'],
-        cp_dir=cp_dir
-    )
-    if FLAGS.load:
-        net.restore(cp_dir=cp_dir)
-    player = MCTSRL(
-        pv_net=net,
-        temp=config['temp'],
-        c_puct=config['c_puct'],
-        playout_num=config['playout_num'],
-        dim=config['dim'],
-        name='mcts_rl_policy'
-    )
-    eval_net = MCTS_POLICY(
-        state_dim=[config['dim'], config['dim'], 4],
-        learning_rate=config['learning_rate'],
-        buffer_size=config['buffer_size'],
-        batch_size=config['batch_size'],
-        epochs=config['epochs']
-    )
-    eval_player = MCTSRL(
-        pv_net=net,
-        temp=config['temp'],
-        c_puct=config['c_puct'],
-        playout_num=config['playout_num'],
-        dim=config['dim'],
-        name='eval_policy'
-    )
-    train_mcts_rl(env, player, eval_player, config, cp_dir, data_file)
-
-
 def augment_data(dim, data):
-    '''
-    增广数据集
-    '''
     extend_data = []
-    for state, mcts_porb, winner in data:
+    for state, mcts_prob, winner in data:
         for i in [1, 2, 3, 4]:
-            # rotate counterclockwise
             equi_state = np.array([np.rot90(s, i) for s in state])
-            equi_mcts_prob = np.rot90(np.flipud(
-                mcts_porb.reshape(dim, dim)), i)
-            extend_data.append((equi_state,
-                                np.flipud(equi_mcts_prob).flatten(),
-                                winner))
-            # flip horizontally
+            equi_mcts_prob = np.rot90(np.flipud(mcts_prob.reshape(dim, dim)), i)
+            extend_data.append((
+                equi_state,
+                np.flipud(equi_mcts_prob).flatten(),
+                winner,
+            ))
             equi_state = np.array([np.fliplr(s) for s in equi_state])
             equi_mcts_prob = np.fliplr(equi_mcts_prob)
-            extend_data.append((equi_state,
-                                np.flipud(equi_mcts_prob).flatten(),
-                                winner))
+            extend_data.append((
+                equi_state,
+                np.flipud(equi_mcts_prob).flatten(),
+                winner,
+            ))
     return extend_data
 
 
 @timer
 def evaluate(num, ratio, env, player1, player2):
-    '''
-    参数：
-        num: 评估对弈的盘数
-        ratio: 用于判断是否有进步的取胜比率
-        env: 游戏环境
-        player1: 第一位选手
-        player2: 第二位选手
-    '''
     win_count = 0
     for i in range(num):
         env.reset()
@@ -102,13 +48,10 @@ def evaluate(num, ratio, env, player1, player2):
         logging.info(f'本轮第{i}次评估对局，结果为{flag}')
     eval_ratio = win_count / num
     logging.info(f'本轮测试评估的胜率为{eval_ratio}')
-    if eval_ratio > ratio:
-        return True
-    else:
-        return False
+    return eval_ratio > ratio
 
 
-def train_mcts_rl(env, player, eval_player, kwargs: dict, cp_dir, data_file):
+def train_mcts_rl(env, player, eval_player, kwargs, cp_dir, data_file):
     game_batch = kwargs.get('game_batch', 1600)
     game_batch_size = kwargs.get('game_batch_size', 1)
     save_frequent = kwargs.get('save_frequent', 10)
@@ -121,8 +64,7 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict, cp_dir, data_file):
         logging.info(f'-> 第{i}批次训练')
         for j in range(game_batch_size):
             logging.info(f'--> 第{i}批次第{j}次训练')
-            data = env.self_play(player)
-            data = list(data)[:]
+            data = list(env.self_play(player))
             data = augment_data(env.dim, data)
             player.net.store(data)
             player.net.store_in_file(data, file_name=data_file)
@@ -131,15 +73,60 @@ def train_mcts_rl(env, player, eval_player, kwargs: dict, cp_dir, data_file):
 
         if i % eval_interval == 0 and i != 0:
             eval_player.net.restore(cp_dir=cp_dir)
-            ret = evaluate(eval_num, ratio, env, player, eval_player)
-            if ret:
+            if evaluate(eval_num, ratio, env, player, eval_player):
                 player.net.save_checkpoint(i)
-                logging.info(f'评估结束, 优化模型已保存')
+                logging.info('评估结束, 优化模型已保存')
             continue
 
         if i % save_frequent == 0:
             player.net.save_checkpoint(i)
             logging.info(f'第{i}次保存模型')
+
+
+def main(_argv):
+    config = load_config('./train_config.yaml')
+    config['dim'] = flags.FLAGS.size
+    config['learning_rate'] = flags.FLAGS.learning_rate
+    cp_dir = './models/models' + str(flags.FLAGS.size)
+    data_file = './data/data' + str(flags.FLAGS.size)
+    pprint(config)
+
+    env = C6(dim=config['dim'])
+    net = MCTS_POLICY(
+        state_dim=[config['dim'], config['dim'], 4],
+        learning_rate=config['learning_rate'],
+        buffer_size=config['buffer_size'],
+        batch_size=config['batch_size'],
+        epochs=config['epochs'],
+        cp_dir=cp_dir,
+    )
+    if flags.FLAGS.load:
+        net.restore(cp_dir=cp_dir)
+
+    player = MCTSRL(
+        pv_net=net,
+        temp=config['temp'],
+        c_puct=config['c_puct'],
+        playout_num=config['playout_num'],
+        dim=config['dim'],
+        name='mcts_rl_policy',
+    )
+    eval_net = MCTS_POLICY(
+        state_dim=[config['dim'], config['dim'], 4],
+        learning_rate=config['learning_rate'],
+        buffer_size=config['buffer_size'],
+        batch_size=config['batch_size'],
+        epochs=config['epochs'],
+    )
+    eval_player = MCTSRL(
+        pv_net=net,
+        temp=config['temp'],
+        c_puct=config['c_puct'],
+        playout_num=config['playout_num'],
+        dim=config['dim'],
+        name='eval_policy',
+    )
+    train_mcts_rl(env, player, eval_player, config, cp_dir, data_file)
 
 
 if __name__ == '__main__':
