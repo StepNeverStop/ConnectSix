@@ -1,6 +1,9 @@
 
-import numpy as np
 import copy
+
+import numpy as np
+
+from .mcts_core import Node
 
 
 def p_v_fn(game):
@@ -8,76 +11,9 @@ def p_v_fn(game):
     return zip(game.available_actions, action_probs), 0
 
 
-class Node(object):
-
-    def __init__(self, parent, prior_prob):
-        '''
-        parent: 父节点
-        prior_prob: 选择该节点的先验概率
-        '''
-        self.parent = parent
-        self.children = {}
-        self.n = 0
-        self.q = 0
-        self.w = 0
-        self.p = prior_prob
-
-    def expand(self, available_actions_prob):
-        '''
-        树扩展
-        '''
-        for action, prob in available_actions_prob:
-            if action not in self.children:
-                self.children[action] = Node(self, prob)
-
-    def select(self, c_puct):
-        '''
-        给当前节点选择一个动作， c_puct控制探索
-        '''
-        return max(self.children.items(), key=lambda item: item[-1].get_Q(c_puct))
-
-    def update_recursive(self, leaf_value, player_step):
-        '''
-        递归函数，向上更新 n, w, q
-        '''
-        if self.parent:
-            self.parent.update_recursive(leaf_value if player_step == 0 else -leaf_value, (player_step + 1) % 2)
-        self.update(leaf_value)
-
-    def update(self, value):
-        '''
-        嵌套在递归函数内，更新当前节点的值
-        '''
-        self.n += 1
-        self.w += value
-        self.q = self.w / self.n
-
-    def get_Q(self, c_puct):
-        '''
-        获取用于选动作的值，UCB公式，一般用于父节点根据子节点的值选择动作，所以不需要判断parent是否为None
-        '''
-        if self.n == 0:
-            u = float("inf")
-        else:
-            u = c_puct * self.p * np.sqrt(self.parent.n / (1 + self.n))
-        return self.q + u
-
-    def is_leaf(self):
-        return self.children == {}
-
-    def is_root(self):
-        return self.parent == None
-
-
-class MCTS(object):
+class MCTS:
 
     def __init__(self, p_v_fn, c_puct=5, n_playout=1600, max_step=1000):
-        '''
-        p_v_fn: 产生当前节点价值，预估孩子节点的概率
-        c_puct: 控制探索
-        n_playout: 在每一步进行多少次playout
-        max_step: 在每个playout向前预估多少步
-        '''
         self.root = Node(None, 1.0)
         self.p_v_fn = p_v_fn
         self.c_puct = c_puct
@@ -97,17 +33,16 @@ class MCTS(object):
         if not end:
             node.expand(available_actions_prob)
             winner = self.rollout2end(game)
-        if winner == -1 or winner == None:
+        if winner == -1 or winner is None:
             value = 0
+        elif (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
+            value = 1
         else:
-            if (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
-                value = 1
-            else:
-                value = -1
+            value = -1
         node.update_recursive(value, player_step)
 
     def rollout2end(self, game):
-        for i in range(self.max_step):
+        for _ in range(self.max_step):
             end, winner = game.is_over()
             if end:
                 break
@@ -126,13 +61,13 @@ class MCTS(object):
             self.root = Node(None, 1.0)
 
     def get_action(self, game):
-        for i in range(self.n_playout):
+        for _ in range(self.n_playout):
             game_copy = copy.deepcopy(game)
             self.playout(game_copy)
         return max(self.root.children.items(), key=lambda item: item[1].n)[0]
 
 
-class MCTSPlayer(object):
+class MCTSPlayer:
 
     def __init__(self, name, c_puct=5, n_playout=1600, max_step=1000):
         self.name = name
@@ -143,5 +78,4 @@ class MCTSPlayer(object):
             action = self.mcts.get_action(game)
             self.mcts.node_move()
             return action % game.dim, action // game.dim
-        else:
-            print('棋盘已经满了，无法落子')
+        print('棋盘已经满了，无法落子')

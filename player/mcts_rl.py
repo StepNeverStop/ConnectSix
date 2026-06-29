@@ -1,32 +1,29 @@
 
-import numpy as np
 import copy
 import json
+
+import numpy as np
 import tensorflow as tf
 from absl import logging
-from .bot_base import RL_Policy, Bot
+
+from .bot_base import Bot, RL_Policy
+from .mcts_core import Node, softmax
 from utils.replay_buffer import ExperienceReplay
 from utils.nn.nets import PV
-import random
-from absl import logging
-
-
-def softmax(x):
-    probs = np.exp(x - np.max(x))
-    probs /= np.sum(probs)
-    return probs
 
 
 class MCTS_POLICY(RL_Policy):
-    def __init__(self,
-                 state_dim,
-                 learning_rate=5.0e-4,
-                 buffer_size=10000,
-                 batch_size=128,
-                 epochs=2,
-                 name='wjs_policy',
-                 cp_dir='./models'
-                 ):
+
+    def __init__(
+        self,
+        state_dim,
+        learning_rate=5.0e-4,
+        buffer_size=10000,
+        batch_size=128,
+        epochs=2,
+        name='wjs_policy',
+        cp_dir='./models',
+    ):
         super().__init__(cp_dir=cp_dir)
         self.lr = learning_rate
         self.epochs = epochs
@@ -41,9 +38,6 @@ class MCTS_POLICY(RL_Policy):
             return self.net(state)
 
     def get_probs_and_v(self, game):
-        '''
-        输入状态，获得相应可选动作的概率和当前节点的预期价值
-        '''
         state = game.get_current_state().reshape(-1, 4, game.box_size, game.box_size)
         log_actions_prob, value = self._get_probs_and_v(state)
         actions_prob = np.exp(log_actions_prob)
@@ -72,110 +66,49 @@ class MCTS_POLICY(RL_Policy):
             s = tf.transpose(s, [0, 2, 3, 1])
             with tf.GradientTape() as tape:
                 log_action_probs, predict_v = self.net(s)
-                p_loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(p, log_action_probs), axis=-1))
+                p_loss = -tf.reduce_mean(
+                    tf.reduce_sum(tf.multiply(p, log_action_probs), axis=-1)
+                )
                 v_loss = tf.reduce_mean((v - predict_v) ** 2)
                 l2_penalty = 1e-4 * tf.add_n(
-                    [tf.nn.l2_loss(v) for v in self.net.trainable_variables if 'bias' not in v.name.lower()])
+                    [
+                        tf.nn.l2_loss(var)
+                        for var in self.net.trainable_variables
+                        if 'bias' not in var.name.lower()
+                    ]
+                )
                 loss = v_loss + p_loss + l2_penalty
             grads = tape.gradient(loss, self.net.trainable_variables)
-            self.optimizer.apply_gradients(
-                zip(grads, self.net.trainable_variables)
-            )
+            self.optimizer.apply_gradients(zip(grads, self.net.trainable_variables))
             self.global_step.assign_add(1)
-            return dict([
-                ['LOSS/v_loss', v_loss],
-                ['LOSS/p_loss', p_loss],
-                ['LOSS/loss', loss],
-            ])
+            return {
+                'LOSS/v_loss': v_loss,
+                'LOSS/p_loss': p_loss,
+                'LOSS/loss': loss,
+            }
 
     def store(self, data: list):
-        for i in data:
-            self.data.add(i)
+        for item in data:
+            self.data.add(item)
 
     def store_in_file(self, data, file_name='./data/data'):
         with open(f'{file_name}.data', 'a') as f:
-            for i in data:
-                json_str = json.dumps([d.tolist() for d in i])  # 将一条经验转换为list
-                f.write(json_str + '\n')  # 保存一条经验
+            for item in data:
+                json_str = json.dumps([d.tolist() for d in item])
+                f.write(json_str + '\n')
 
     def _restore_from_file(self, data, file_name='./data/data'):
         with open(f'{file_name}.data') as f:
-            for json_str in f:  # 每行为一条经验
+            for json_str in f:
                 if json_str != '':
-                    data = json.loads(json_str)
-                    data = [np.array(d) for d in data]  # 一条经验
-                    self.data.add(data)  # 恢复一条经验
+                    restored = json.loads(json_str)
+                    restored = [np.array(d) for d in restored]
+                    self.data.add(restored)
 
 
-class Node(object):
-
-    def __init__(self, parent, prior_prob):
-        '''
-        parent: 父节点
-        prior_prob: 选择该节点的先验概率
-        '''
-        self.parent = parent
-        self.children = {}
-        self.n = 0  # 访问次数
-        self.q = 0  # 平均Q值
-        self.w = 0  # 总值
-        self.p = prior_prob  # 由神经网络预测的先验概率
-
-    def expand(self, available_actions_prob):
-        '''
-        树扩展
-        '''
-        for action, prob in available_actions_prob:
-            if action not in self.children:
-                self.children[action] = Node(self, prob)
-
-    def select(self, c_puct):
-        '''
-        给当前节点选择一个动作， c_puct控制探索
-        '''
-        return max(self.children.items(), key=lambda item: item[-1].get_Q(c_puct))
-
-    def update_recursive(self, leaf_value, player_step):
-        '''
-        递归函数，向上更新 n, w, q
-        '''
-        if self.parent:
-            self.parent.update_recursive(leaf_value if player_step == 0 else -leaf_value, (player_step + 1) % 2)
-        self.update(leaf_value)
-
-    def update(self, value):
-        '''
-        嵌套在递归函数内，更新当前节点的值
-        '''
-        self.n += 1
-        self.w += value
-        self.q = self.w / self.n
-
-    def get_Q(self, c_puct):
-        '''
-        获取用于选动作的值，UCB公式，一般用于父节点根据子节点的值选择动作，所以不需要判断parent是否为None
-        '''
-        if self.n == 0:
-            u = float("inf")
-        else:
-            u = c_puct * self.p * np.sqrt(self.parent.n / (1 + self.n))
-        return self.q + u
-
-    def is_leaf(self):
-        return self.children == {}
-
-    def is_root(self):
-        return self.parent == None
-
-
-class MCTS(object):
+class MCTS:
 
     def __init__(self, p_v_fn, temp=1e-3, c_puct=5, playout_num=1600):
-        '''
-        p_v_fn: 产生当前节点价值，预估孩子节点的概率
-        c_puct: 控制探索
-        playout_num: 在每一步进行多少次playout
-        '''
         self.root = Node(None, 1.0)
         self.p_v_fn = p_v_fn
         self.temp = temp
@@ -195,7 +128,7 @@ class MCTS(object):
         player, player_step = game.get_current_player_info()
         if not end:
             node.expand(available_actions_prob)
-        else:   # TODO: 测试结果反传是否正确
+        else:
             if winner == -1:
                 value = 0
             elif (player_step == 1 and player == winner) or (player_step == 0 and player != winner):
@@ -217,8 +150,10 @@ class MCTS(object):
                 logging.info(f'----> 第{i:4d}次play out')
             game_copy = copy.deepcopy(game)
             self.playout(game_copy)
-        action_visits = [(action_index, node.n)
-                         for action_index, node in self.root.children.items()]
+        action_visits = [
+            (action_index, node.n)
+            for action_index, node in self.root.children.items()
+        ]
         action_index, visits = zip(*action_visits)
         action_probs = softmax(1.0 / self.temp * np.log(np.array(visits) + 1e-10))
         return action_index, action_probs
@@ -232,42 +167,39 @@ class MCTSRL(Bot):
         self.mcts = MCTS(pv_net.get_probs_and_v, temp, c_puct, playout_num)
 
     def choose_action(self, game, return_prob=False, is_self_play=True, evaluate=False):
-        '''
-        蒙特卡洛策略选动作
-        '''
-        move_probs = np.zeros(game.box_size**2)
-        if len(game.available_actions) > 0:
-            a, b = game.get_available_actions()
-            c = game.available_actions
-            if len(a) > 0:
-                action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
-
-                if game.cor == True:
-                    c = []
-                    for index, v in enumerate(a):
-                        for i in list(action_index):
-                            if v == i:
-                                c.append(b[index])
-
-                move_probs[c] = action_probs
-                if is_self_play:
-                    action = np.random.choice(action_index, p=action_probs)
-                    self.mcts.node_move(action)
-                else:
-                    action = action_index[np.argmax(action_probs)]
-                    self.mcts.node_move(-1)
-                x, y = action % game.dim, action // game.dim
-                if return_prob:
-                    return x, y, move_probs
-                else:
-                    return x, y
-            else:
-                import random   # 只有在用19*19的策略推断37*37的棋盘时会出现这种情况
-                action = random.sample(game.available_actions, 1)[0]
-                x, y = action % game.dim, action // game.dim
-                return x, y
-        else:
+        move_probs = np.zeros(game.box_size ** 2)
+        if len(game.available_actions) == 0:
             logging.info('棋盘已经满了，无法落子')
+            return
+
+        a, b = game.get_available_actions()
+        c = game.available_actions
+        if len(a) == 0:
+            import random
+            action = random.sample(game.available_actions, 1)[0]
+            x, y = action % game.dim, action // game.dim
+            return x, y
+
+        action_index, action_probs = self.mcts.get_action_probs(game, evaluate)
+
+        if game.cor:
+            c = []
+            for index, v in enumerate(a):
+                for i in list(action_index):
+                    if v == i:
+                        c.append(b[index])
+
+        move_probs[c] = action_probs
+        if is_self_play:
+            action = np.random.choice(action_index, p=action_probs)
+            self.mcts.node_move(action)
+        else:
+            action = action_index[np.argmax(action_probs)]
+            self.mcts.node_move(-1)
+        x, y = action % game.dim, action // game.dim
+        if return_prob:
+            return x, y, move_probs
+        return x, y
 
     def reset_tree(self):
         self.mcts.node_move(action=-1)

@@ -47,7 +47,7 @@ class RL_Policy(tf.keras.Model):
             except:
                 print('restore model from checkpoint FAILED.')
             else:
-                print('restore model from checkpoint SUCCUESS.')
+                print('restore model from checkpoint SUCCESS.')
         else:
             raise Exception(f'model file {cp_dir} cannot be found')
 
